@@ -1,47 +1,29 @@
-# Windows image file caches
-Thumbs.db
-ehthumbs.db
+*.rar
 
-# Folder config file
-Desktop.ini
+*.o
+*.d
+*.crf
+*.htm
+*.dep
+*.map
+*.bak
+*.axf
+*.lnp
+*.lst
+*.ini
 
-# Recycle Bin used on file shares
-$RECYCLE.BIN/
 
-# Windows Installer files
-*.cab
-*.msi
-*.msm
-*.msp
+.gitignore
 
-# Windows shortcuts
-*.lnk
+00-DOCUMENTATIONSOURCE/
+00-DOCUMENTATION/
+00-GSM_LIBRARY/
+00-RELEASES/
+01-DEV/
+01-DEV_RTOS/
 
-# =========================
-# Operating System Files
-# =========================
 
-# OSX
-# =========================
-
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# Thumbnails
-._*
-
-# Files that might appear in the root of a volume
-.DocumentRevisions-V100
-.fseventsd
-.Spotlight-V100
-.TemporaryItems
-.Trashes
-.VolumeIcon.icns
-
-# Directories potentially created on remote AFP share
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
+SIM800_Series_AT_Command_Manual_V1.09.pdf
+README.md
+.gitattributes
+delete_unused_files.bat
