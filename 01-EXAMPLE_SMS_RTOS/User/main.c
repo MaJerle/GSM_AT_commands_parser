@@ -45,20 +45,20 @@ osThreadDef(GSM_Main, GSM_Main_Thread, osPriorityNormal, 0, configMINIMAL_STACK_
 osThreadId GSM_Update_ThreadId, GSM_Main_ThreadId;
 
 int main(void) {
-	TM_RCC_InitSystem();                                    /* Init system */
-	HAL_Init();                                             /* Init HAL layer */
-	TM_DISCO_LedInit();                                     /* Init leds */
-	TM_DISCO_ButtonInit();                                  /* Init button */
-	TM_DELAY_Init();                                        /* Init delay */
+    TM_RCC_InitSystem();                                    /* Init system */
+    HAL_Init();                                             /* Init HAL layer */
+    TM_DISCO_LedInit();                                     /* Init leds */
+    TM_DISCO_ButtonInit();                                  /* Init button */
+    TM_DELAY_Init();                                        /* Init delay */
     TM_USART_Init(DEBUG_USART, DEBUG_USART_PP, 921600);     /* Init USART */
-    
+
     /* Print first screen message */
     printf("GSM commands parser; Compiled: %s %s \r\n", __DATE__, __TIME__);
-    
+
     /* Initialize threads */
     GSM_Update_ThreadId = osThreadCreate(osThread(GSM_Update), NULL);
     GSM_Main_ThreadId = osThreadCreate(osThread(GSM_Main), NULL);
-    
+
     /* Start kernel */
     osKernelStart();
     
@@ -69,7 +69,7 @@ int main(void) {
 
 /* 1ms handler */
 void TM_DELAY_1msHandler() {
-	GSM_UpdateTime(&GSM, 1);                /* Update ESP8266 library time for 1 ms */
+    GSM_UpdateTime(&GSM, 1);                /* Update ESP8266 library time for 1 ms */
     osSystickHandler();                     /* Kernel systick handler processing */
 }
 
@@ -104,6 +104,7 @@ void GSM_Main_Thread(void const* params) {
             if ((gsmRes = GSM_SMS_Read(&GSM, &SMS_Entry, SMS_Info->Position, 1)) == gsmOK) {
                 printf("SMS READ OK!\r\n");
                 
+                /* Make actions according to received SMS string */
                 if (strcmp(SMS_Entry.Data, "LED ON") == 0) {
                     TM_DISCO_LedOn(LED_ALL);
                     gsmRes = GSM_SMS_Send(&GSM, SMS_Entry.Number, "OK", 1);
@@ -153,6 +154,6 @@ void GSM_Callback_SMS_Info(gvol GSM_t* GSM) {
 
 /* printf handler */
 int fputc(int ch, FILE* fil) {
-	TM_USART_Putc(DEBUG_USART, ch);         /* Send over debug USART */
-	return ch;                              /* Return OK */
+    TM_USART_Putc(DEBUG_USART, ch);         /* Send over debug USART */
+    return ch;                              /* Return OK */
 }
