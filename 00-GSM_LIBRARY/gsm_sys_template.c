@@ -23,5 +23,26 @@
  * | OTHER DEALINGS IN THE SOFTWARE.
  * |----------------------------------------------------------------------
  */
-#include "gsm_ll_template.h"
+#include "gsm_sys_template.h"
 
+/******************************************************************************/
+/******************************************************************************/
+/***     Copy this file to project directory and rename it to "gsm_sys.c"    **/
+/******************************************************************************/
+/******************************************************************************/
+
+uint8_t GSM_SYS_Create(GSM_RTOS_SYNC_t* Sync) {
+	return 0;
+}
+
+uint8_t GSM_SYS_Delete(GSM_RTOS_SYNC_t* Sync) {
+	return 0;
+}
+
+uint8_t GSM_SYS_Request(GSM_RTOS_SYNC_t* Sync) {
+	return 0;
+}
+
+uint8_t GSM_SYS_Release(GSM_RTOS_SYNC_t* Sync) {
+	return 0;
+}

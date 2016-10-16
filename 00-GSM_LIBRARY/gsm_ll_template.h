@@ -32,7 +32,7 @@
 \endverbatim
  */
 #ifndef GSM_LL_H
-#define GSM_LL_H 100
+#define GSM_LL_H 010
 
 /* C++ detection */
 #ifdef __cplusplus
@@ -43,15 +43,20 @@ extern "C" {
 #include "stdint.h"
 #include "stdlib.h"
 
+/******************************************************************************/
+/******************************************************************************/
+/***      Copy this file to project directory and rename it to "gsm_ll.h"    **/
+/******************************************************************************/
+/******************************************************************************/
 
 /**
- * \defgroup GSM_LL
+ * \defgroup LOWLEVEL
  * \brief    GSM Low-Level implementation
  * \{
  */
     
 /**
- * \defgroup GSM_LL_Typedefs
+ * \defgroup LOWLEVEL_Typedefs
  * \brief    GSM Low-Level
  * \{
  */
@@ -72,20 +77,22 @@ typedef struct _GSM_LL_t {
 #include "gsm.h"
     
 /**
- * \defgroup GSM_LL_Macros
+ * \defgroup LOWLEVEL_Macros
  * \brief    GSM Low-Level macros
  * \{
  */
 
 #define GSM_RTS_HIGH        1   /*!< RTS should be set high */
 #define GSM_RTS_CLEAR       0   /*!< RTS should be set low */
+#define GSM_RESET_HIGH		1	/*!< Reset pin should be set */
+#define GSM_RESET_LOW		0	/*!< Reset pin should be cleared */
     
 /**
  * \}
  */
 
 /**
- * \defgroup GSM_LL_Functions
+ * \defgroup LOWLEVEL_Functions
  * \brief    GSM Low-Level implementation
  * \{
  */
@@ -109,6 +116,16 @@ uint8_t GSM_LL_Init(GSM_LL_t* LL);
  *            - > 0: Error
  */
 uint8_t GSM_LL_SendData(GSM_LL_t* LL, const uint8_t* data, uint16_t count);
+
+/**
+ * \brief  Set reset pin high or low
+ * \param  *LL: Pointer to \ref GSM_LL_t structure with settings
+ * \param  state: State for reset pin, it can be high or low. Check \ref GSM_RESET_HIGH and \ref GSM_RESET_LOW
+ * \retval Success status:
+ *            - 0: Successful
+ *            - > 0: Error
+ */
+uint8_t GSM_LL_SetReset(GSM_LL_t* LL, uint8_t state);
 
 /**
  * \brief  Initializes Low-Level driver to communicate with SIM module

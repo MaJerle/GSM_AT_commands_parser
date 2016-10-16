@@ -44,28 +44,33 @@ extern "C" {
  * \brief    GSM Config
  * \{
  */
-/**
- * \defgroup GSM_Config
- * \brief    GSM configuration
- * \{
- */
 
 /**
- * \brief  GSM Receive buffer size in units of bytes for processing
+ * \brief  GSM Receive buffer size in units of bytes for processing.
  *
+ *         Use as much as possible, but not less than 128 bytes.
  */
 #define GSM_BUFFER_SIZE                 512
 
 /**
  * \brief  GSM RTOS support enabled (1) or disabled (0)
- *
  */
-#define GSM_RTOS                        1
+#define GSM_RTOS                        0
+
+/**
+ * \brief  RTOS sync object for mutex
+ */
 #define GSM_RTOS_SYNC_t                 osMutexDef_t
+
+/**
+ * \brief  Timeout in milliseconds for mutex to access API
+ */
 #define GSM_RTOS_TIMEOUT                180000
 
 /**
  * \brief  Async data processing enabled (1) or disabled (0)
+ *
+ * \note   This feature has sense when in non-RTOS mode and you wanna process income data async (in interrupt)
  */
 #define GSM_UPDATE_ASYNC                1
 
@@ -76,12 +81,11 @@ extern "C" {
 
 /**
  * \brief  Maximal number of stored informations about received SMS at a time
+ *
+ *         When you are in other actions and you can't check SMS, 
+ *         stack will save as many received SMS infos as possible (selected with this option)  
  */
 #define GSM_MAX_RECEIVED_SMS_INFO       3
-
-/**
- * \}
- */
 
 /**
  * \}

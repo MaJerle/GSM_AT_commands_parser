@@ -32,7 +32,7 @@
 \endverbatim
  */
 #ifndef GSM_SYS_H
-#define GSM_SYS_H 100
+#define GSM_SYS_H 010
 
 /* C++ detection */
 #ifdef __cplusplus
@@ -43,15 +43,21 @@ extern "C" {
 #include "stdint.h"
 #include "stdlib.h"
     
-/* Platform dependant */
+/* Platform dependant includes add here before gsm.h library include */
 //#include "cmsis_os.h"
     
 /* Include library */
 #include "gsm.h"
 #include "gsm_config.h"
 
+/******************************************************************************/
+/******************************************************************************/
+/***     Copy this file to project directory and rename it to "gsm_sys.h"    **/
+/******************************************************************************/
+/******************************************************************************/
+
 /**
- * \defgroup GSM_SYS
+ * \defgroup SYSCALL
  * \brief    GSM Syscall implementation
  * \{
  *
@@ -60,7 +66,7 @@ extern "C" {
  * In this case, mutex implementation is required to allow multiple threads communicate with GSM library.
  */
 /**
- * \defgroup GSM_SYS_Functions
+ * \defgroup SYSCALL_Functions
  * \brief    GSM Syscalls functions
  * \{
  */

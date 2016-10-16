@@ -32,7 +32,7 @@
 \endverbatim
  */
 #ifndef GSM_H
-#define GSM_H 110
+#define GSM_H 010
 
 /* C++ detection */
 #ifdef __cplusplus
@@ -41,16 +41,14 @@ extern "C" {
 
 /**
  * \defgroup GSM
- * \brief    
+ * \brief  Platform independent, written in ANSII C, GSM AT parser library for SIMcom modules   
  * \{
  *
- *
- * \par Dependencies
+ * \par Features
  *
 \verbatim
- - stdlib.h
- - string.h
- - stdint.h
+- Platform independant GSM AT Parser library for SIMcom modules
+- Written in ANSII C89
 \endverbatim
  */
 #include "stdlib.h"
@@ -270,7 +268,7 @@ typedef struct _GSM_SMS_Entry_t {
 } GSM_SMS_Entry_t;
 
 /**
- * \brief  Phone book item
+ * \brief  Phonebook entry item
  */
 typedef struct _GSM_PB_Entry_t {
     uint16_t Index;                                         /*!< Phonebook index number */
@@ -339,13 +337,16 @@ typedef struct _GSM_FTP_t {
     uint8_t ID;                                             /*!< Future use purpose */
 } GSM_FTP_t;
 
+/**
+ * \brief  GSM network status
+ */
 typedef enum _GSM_NetworkStatus_t {
-    GSM_NetworkStatus_Searching,
-    GSM_NetworkStatus_RegisteredHome,
-    GSM_NetworkStatus_NotRegistered,
-    GSM_NetworkStatus_RegistrationDenied,
-    GSM_NetworkStatus_Unknown,
-    GSM_NetworkStatus_RegisteredRoaming
+    GSM_NetworkStatus_Searching = 0x00,                     /*!< Searching for network */
+    GSM_NetworkStatus_RegisteredHome,                       /*!< Registered in home network */
+    GSM_NetworkStatus_NotRegistered,                        /*!< Not registered and not searching */
+    GSM_NetworkStatus_RegistrationDenied,                   /*!< Registration has been denied */
+    GSM_NetworkStatus_Unknown,                              /*!< Unknown status */
+    GSM_NetworkStatus_RegisteredRoaming                     /*!< Registered and roaming */
 } GSM_NetworkStatus_t;
 
 /**
@@ -439,6 +440,9 @@ typedef struct _GSM_t {
             
             uint8_t RespHttpAction:1;                       /*!< +HTTPACTION received and already parsed */
             uint8_t RespDownload:1;                         /*!< DOWNLOAD received for download HTTP data */
+            
+            uint8_t RespCallReady:1;                        /*!< Set to 1 when call is ready */
+            uint8_t RespSMSReady:1;                         /*!< Set to 1 when SNS is ready */
         } F;
         uint32_t Value;                                     /*!< Value containing all the flags in single memory */
     } Events;                                               /*!< Union holding all the required events for library internal processing */
@@ -453,14 +457,58 @@ typedef struct _GSM_t {
  * \brief    Library Functions
  * \{
  */
-GSM_Result_t GSM_Init(gvol GSM_t* GSM, const char* pin, uint32_t Baudrate);
+
+/**
+ * \brief  Initializes GSM stack and prepares low-level layer and system calls when necessary
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *pin: Pointer to pin in string format to be used if SIM is inserted and not ready
+ * \param  baudrate: Baudrate for UART communication
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
+GSM_Result_t GSM_Init(gvol GSM_t* GSM, const char* pin, uint32_t baudrate);
+
+/**
+ * \brief  Checks received data and makes action according to selected action
+ * \note   When in <b>RTOS</b> mode, it is recommended to use this function in separate thread only for GSM processing
+ *
+ * \note   When in <b>ASYNC</b> mode only (without <b>RTOS</b>), it is recommended to use this function in 1ms interrupt handler for processing incoming data
+ *
+ * \note   When not in <b>RTOS</b> and <b>ASYNC</b> mode, you have to call this function in main while loop as faster as possible.
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
 GSM_Result_t GSM_Update(gvol GSM_t* GSM);
+
+/**
+ * \brief  Checks for flags and calls callback functions for user.
+ * \note   When in <b>RTOS</b> or <b>ASYNC</b> mode, user has to call this function manually. 
+ 
+ * \note   WHen not in <b>RTOS</b> AND <b>ASYNC</b> mode, this function is called from GSM library itself and can be left by user.
+ *
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
+GSM_Result_t GSM_ProcessCallbacks(gvol GSM_t* GSM);
+
+/**
+ * \brief  Update time for GSM stack
+ * \note   This function must be called periodically with fixed frequency
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  millis: Number of milliseconds time is increased from last function call
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
+GSM_Result_t GSM_UpdateTime(gvol GSM_t* GSM, uint32_t millis);
+GSM_Result_t GSM_GetLastReturnStatus(gvol GSM_t* GSM);
 GSM_Result_t GSM_WaitReady(gvol GSM_t* GSM, uint32_t timeout);
 GSM_Result_t GSM_Delay(gvol GSM_t* GSM, uint32_t timeout);
-GSM_Result_t GSM_Process(gvol GSM_t* GSM);
-GSM_Result_t GSM_ProcessCallbacks(gvol GSM_t* GSM);
-GSM_Result_t GSM_UpdateTime(gvol GSM_t* GSM, uint32_t ticksNum);
-GSM_Result_t GSM_GetLastReturnStatus(gvol GSM_t* GSM);
+
+/**
+ * \brief  Data were received from UART and should be transfered to GSM stack
+ * \note   This function should be called from UART RX interrupt for further processing
+ * \param  *ch: Pointer to character or array of characters
+ * \param  count: Number of characters received from UART 
+ * \retval Number of characters added to GSM stack
+ */
 uint32_t GSM_DataReceived(uint8_t* ch, uint32_t count);
 
 /**
@@ -517,9 +565,41 @@ GSM_Result_t GSM_INFO_GetSerialNumber(gvol GSM_t* GSM, char* str, uint32_t lengt
  * \brief    PIN/PUK based functions
  * \{
  */
+/**
+ * \brief  Enter PIN code for SIM card
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *pin: Pointer to PIN in string format
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
 GSM_Result_t GSM_PIN_Enter(gvol GSM_t* GSM, const char* pin, uint32_t blocking);
+
+/**
+ * \brief  Remove PIN code for SIM card
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *current_pin: Pointer to current PIN in string format
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
 GSM_Result_t GSM_PIN_Remove(gvol GSM_t* GSM, const char* current_pin, uint32_t blocking);
+
+/**
+ * \brief  Set new PIN for SIM
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *new_pin: Pointer to new PIN in string format
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
 GSM_Result_t GSM_PIN_Add(gvol GSM_t* GSM, const char* new_pin, uint32_t blocking);
+
+/**
+ * \brief  Unlock SIM by entering PUK code and new PIN
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *puk: Pointer to SIM PUK code
+ * \param  *new_pin: Pointer to new PIN in string format
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
 GSM_Result_t GSM_PUK_Enter(gvol GSM_t* GSM, const char* puk, const char* new_pin, uint32_t blocking);
 /**
  * \}
@@ -530,13 +610,76 @@ GSM_Result_t GSM_PUK_Enter(gvol GSM_t* GSM, const char* puk, const char* new_pin
  * \brief    CALL based functions
  * \{
  */
+
+/**
+ * \brief  Start voice call to specific number
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *number: Pointer to number in string format
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
 GSM_Result_t GSM_CALL_Voice(gvol GSM_t* GSM, const char* number, uint32_t blocking);
-GSM_Result_t GSM_CALL_VoiceFromSIMPosition(gvol GSM_t* GSM, uint16_t pos, uint32_t blocking);
+
+/**
+ * \brief  Start data call to specific number
+ * \note   This options has not been actually tested yet
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *number: Pointer to number in string format
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
 GSM_Result_t GSM_CALL_Data(gvol GSM_t* GSM, const char* number, uint32_t blocking);
+
+/**
+ * \brief  Start voice call to specific number selected from sim phonebook
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  pos: Phonebook position on SIM card
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
+GSM_Result_t GSM_CALL_VoiceFromSIMPosition(gvol GSM_t* GSM, uint16_t pos, uint32_t blocking);
+
+/**
+ * \brief  Start data call to specific number selected from sim phonebook
+ * \note   This options has not been actually tested yet
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  pos: Phonebook position on SIM card
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
 GSM_Result_t GSM_CALL_DataFromSIMPosition(gvol GSM_t* GSM, uint16_t pos, uint32_t blocking);
+
+/**
+ * \brief  Answer to received call
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
 GSM_Result_t GSM_CALL_Answer(gvol GSM_t* GSM, uint32_t blocking);
+
+/**
+ * \brief  Hang up a receiving call or finish with call
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
 GSM_Result_t GSM_CALL_HangUp(gvol GSM_t* GSM, uint32_t blocking);
+
+/**
+ * \brief  Get informations about current call, receive, outgoing or active
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Pointer to call info.
+ */
 GSM_CallInfo_t* GSM_CALL_GetInfo(gvol GSM_t* GSM, uint32_t blocking);
+
+/**
+ * \brief  Clear informations about call once you are done and you don't need info anymore
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *info: Pointer to \ref GSM_CallInfo_t structure previously returned with \ref GSM_CALL_GetInfo function
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
 GSM_Result_t GSM_CALL_ClearInfo(gvol GSM_t* GSM, GSM_CallInfo_t* info, uint32_t blocking);
 
 /**
@@ -548,12 +691,75 @@ GSM_Result_t GSM_CALL_ClearInfo(gvol GSM_t* GSM, GSM_CallInfo_t* info, uint32_t 
  * \brief    SMS based functions
  * \{
  */
+
+/**
+ * \brief  Send new SMS to specific number
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *number: Phone number to send SMS to
+ * \param  *data: SMS data in ASCII format
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
 GSM_Result_t GSM_SMS_Send(gvol GSM_t* GSM, const char* number, const char* data, uint32_t blocking);
-GSM_Result_t GSM_SMS_Read(gvol GSM_t* GSM, GSM_SMS_Entry_t* SMS, uint16_t position, uint32_t blocking);
-GSM_Result_t GSM_SMS_List(gvol GSM_t* GSM, GSM_SMS_ReadType_t type, GSM_SMS_Entry_t* entries, uint16_t entries_count, uint16_t* entries_read, uint32_t blocking);
+
+/**
+ * \brief  Read SMS from specific SIM memory position
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  position: SMS position in memory.
+ * \param  *SMS: Pointer to empty \ref GSM_SMS_Entry_t structure to save data to
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
+GSM_Result_t GSM_SMS_Read(gvol GSM_t* GSM, uint16_t position, GSM_SMS_Entry_t* SMS, uint32_t blocking);
+
+/**
+ * \brief  List all SMS entries
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  type: SMS type to read. This parameter can be a value of \ref GSM_SMS_ReadType_t enumeration
+ * \param  *entries: Pointer to array of \ref GSM_SMS_Entry_t structures
+ * \param  btr: Number of entries to read. This parameter can't be greater than number of elements in entries array
+ * \param  *br: Pointer to save actual SMS entries read from module
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
+GSM_Result_t GSM_SMS_List(gvol GSM_t* GSM, GSM_SMS_ReadType_t type, GSM_SMS_Entry_t* entries, uint16_t btr, uint16_t* br, uint32_t blocking);
+
+/**
+ * \brief  Delete specific SMS at desired position
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  position: Position in memory to delete
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
 GSM_Result_t GSM_SMS_Delete(gvol GSM_t* GSM, uint16_t position, uint32_t blocking);
-GSM_Result_t GSM_SMS_MassDelete(gvol GSM_t* GSM, GSM_SMS_MassDelete_t Type, uint32_t blocking);
+
+/**
+ * \brief  Process mass delete SMS entries
+ * \note   This function may take a while so take care of using it as blocking.
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  type: Mass delete type. This parameter can be a value of \ref GSM_SMS_MassDelete_t enumeration
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
+GSM_Result_t GSM_SMS_MassDelete(gvol GSM_t* GSM, GSM_SMS_MassDelete_t type, uint32_t blocking);
+
+/**
+ * \brief  Get informations about received new SMS if possible
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Pointer to \ref GSM_SmsInfo_t structure with informations about received SMS or NULL if nothing received
+ */
 GSM_SmsInfo_t* GSM_SMS_GetReceivedInfo(gvol GSM_t* GSM, uint32_t blocking);
+
+/**
+ * \brief  Clear info about received SMS
+ * \note   You must call this function after you process everything from \ref GSM_SMS_GetReceivedInfo function call
+ *           to allow new SMS received infos to be saved again into free memory.
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *info: Pointer to previously returned pointer from \ref GSM_SMS_GetReceivedInfo function to clear and free memory
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
 GSM_Result_t GSM_SMS_ClearReceivedInfo(gvol GSM_t* GSM, GSM_SmsInfo_t* info, uint32_t blocking);
 
 /**
@@ -565,12 +771,70 @@ GSM_Result_t GSM_SMS_ClearReceivedInfo(gvol GSM_t* GSM, GSM_SmsInfo_t* info, uin
  * \brief    PHONEBOOK based functions
  * \{
  */
+/**
+ * \brief  Add new entry to phonebook
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *name: Pointer to new phonebook entry name
+ * \param  *number: Pointer to entry call number in string format
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
 GSM_Result_t GSM_PB_Add(gvol GSM_t* GSM, const char* name, const char* number, uint32_t blocking);
+
+/**
+ * \brief  Edit phonebook entry
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  index: Index position for entry in phonebook
+ * \param  *name: Pointer to new phonebook entry name
+ * \param  *number: Pointer to entry call number in string format
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
 GSM_Result_t GSM_PB_Edit(gvol GSM_t* GSM, uint32_t index, const char* name, const char* number, uint32_t blocking);
+
+/**
+ * \brief  Delete phonebook entry
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  index: Index position for entry in phonebook to delete
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
 GSM_Result_t GSM_PB_Delete(gvol GSM_t* GSM, uint32_t index, uint32_t blocking);
-GSM_Result_t GSM_PB_Get(gvol GSM_t* GSM, GSM_PB_Entry_t* entry, uint32_t index, uint32_t blocking);
-GSM_Result_t GSM_PB_List(gvol GSM_t* GSM, GSM_PB_Entry_t* entries, uint16_t start_index, uint16_t entries_count, uint16_t* entries_read, uint32_t blocking);
-GSM_Result_t GSM_PB_Search(gvol GSM_t* GSM, const char* search, GSM_PB_Entry_t* entries, uint16_t entries_count, uint16_t* entries_read, uint32_t blocking);
+
+/**
+ * \brief  Read phonebook entry
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *entry: Pointer to empty \ref GSM_PB_Entry_t structure to save entry informations
+ * \param  index: Index in phonebook to read entry
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
+GSM_Result_t GSM_PB_Get(gvol GSM_t* GSM, uint32_t index, GSM_PB_Entry_t* entry, uint32_t blocking);
+
+/**
+ * \brief  List entries from phonebook
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *entries: Pointer to array of empty entry structures to save data to
+ * \param  start_index: Start index number in phonebook to read from
+ * \param  btr: Number of entries to read. This number should not be greater than number of elements in entries array
+ * \param  *br: Pointer to number to save actual number of entries read from phonebook
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
+GSM_Result_t GSM_PB_List(gvol GSM_t* GSM, GSM_PB_Entry_t* entries, uint16_t start_index, uint16_t btr, uint16_t* br, uint32_t blocking);
+
+/**
+ * \brief  Search for entries in phonebook
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *search: Pointer to string to use in search operation
+ * \param  *entries: Pointer to array of empty entry structures to save data to
+ * \param  btr: Number of entries to read. This number should not be greater than number of elements in entries array
+ * \param  *br: Pointer to number to save actual number of entries read from phonebook
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
+GSM_Result_t GSM_PB_Search(gvol GSM_t* GSM, const char* search, GSM_PB_Entry_t* entries, uint16_t btr, uint16_t* br, uint32_t blocking);
+
 /**
  * \}
  */
@@ -579,6 +843,14 @@ GSM_Result_t GSM_PB_Search(gvol GSM_t* GSM, const char* search, GSM_PB_Entry_t* 
  * \defgroup DATETIME_API
  * \brief    DATETIME based functions
  * \{
+ */
+/**
+ * \brief  Get current date and time from network
+ * \note   Some network operators does not support this function. In this case, time when module was last reset will be returned.
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *datetime: Pointer to empty \ref GSM_DateTime_t structure to save date and time
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_DATETIME_Get(gvol GSM_t* GSM, GSM_DateTime_t* datetime, uint32_t blocking);
 /**
@@ -590,7 +862,23 @@ GSM_Result_t GSM_DATETIME_Get(gvol GSM_t* GSM, GSM_DateTime_t* datetime, uint32_
  * \brief    GPRS based functions
  * \{
  */
+/**
+ * \brief  Connects module to GPRS network to access to internet
+ * \note   This operation may take up to 3 minutes so take care when in blocking use. When in <b>RTOS</b> mode, you may use it in blocking mode easily.
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *apn: Pointer to APN string for internet
+ * \param  *user: Pointer to user name. Use "" when no user is required
+ * \param  *pwd: Pointer to password. Use "" when no password is required
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
 GSM_Result_t GSM_GPRS_Attach(gvol GSM_t* GSM, const char* apn, const char* user, const char* pwd, uint32_t blocking);
+
+/**
+ * \brief  Disconnects module from GPRS network
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
 GSM_Result_t GSM_GPRS_Detach(gvol GSM_t* GSM, uint32_t blocking);
 /**
  * \}
@@ -600,14 +888,57 @@ GSM_Result_t GSM_GPRS_Detach(gvol GSM_t* GSM, uint32_t blocking);
  * \defgroup CONN_API
  * \brief    TCP/UPD connection based functions
  * \{
+ *
+ * \note   Concept of connections is done to support multiple connections at the same time.
+ *         However, currently only single connection at a time can be used.
+ */
+
+/**
+ * \brief  Start a new connection
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *conn: Pointer to empty \ref GSM_CONN_t structure for connection identifier
+ * \param  type: Connection type. This parameter can be a value of \ref GSM_CONN_ConnType_t enumeration
+ * \param  *host: Pointer to host where to connect. Can be a domain name or IP address, both in sting format
+ * \param  port: Port to connect to
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_CONN_ConnStart(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, GSM_CONN_ConnType_t type, const char* host, uint16_t port, uint32_t blocking);
-GSM_Result_t GSM_CONN_ConnSend(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, const void* data, uint16_t length, uint32_t blocking);
-GSM_Result_t GSM_CONN_ConnReceive(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, void* data, uint16_t length, uint16_t* read, uint16_t timeBeforeRead, uint32_t blocking);
-GSM_Result_t GSM_CONN_ConnClose(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, uint32_t blocking);
+
 /**
- * \}
+ * \brief  Send data on active connection
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *conn: Pointer to working \ref GSM_CONN_t structure for connection
+ * \param  *data: Pointer to data to send
+ * \param  btw: Number of data to send
+ * \param  *bw: Pointer to save number of bytes actually sent in connection
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
  */
+GSM_Result_t GSM_CONN_ConnSend(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, const void* data, uint16_t btw, uint16_t* bw, uint32_t blocking);
+
+/**
+ * \brief  Read received data on connection
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *conn: Pointer to working \ref GSM_CONN_t structure for connection
+ * \param  *data: Pointer to data array to save receive data to
+ * \param  btr: Length of data array in units of bytes
+ * \param  *br: Pointer to number of actually read bytes from response
+ * \param  timeBeforeRead: Wait time before actual trying to read. This enables you to wait for actual data to receive from response.
+ *            Set to 0 if you don't want to wait.
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
+GSM_Result_t GSM_CONN_ConnReceive(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, void* data, uint16_t btr, uint16_t* br, uint16_t timeBeforeRead, uint32_t blocking);
+
+/**
+ * \brief  Close active connection
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *conn: Pointer to working \ref GSM_CONN_t structure for connection
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
+GSM_Result_t GSM_CONN_ConnClose(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, uint32_t blocking);
 
 /**
  * \brief  Checks if any data to read from connection response
@@ -625,22 +956,76 @@ GSM_Result_t GSM_CONN_ConnClose(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, uint32_t
 uint32_t GSM_CONN_DataAvailable(gvol GSM_t* GSM, const gvol GSM_CONN_t* conn, uint32_t blocking);
 
 /**
+ * \}
+ */
+
+/**
  * \defgroup HTTP_API
  * \brief    HTTP based functions
  * \{
  */
+
+/**
+ * \brief  Begin with HTTP support on SIM module
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
 GSM_Result_t GSM_HTTP_Begin(gvol GSM_t* GSM, uint32_t blocking);
+
+/**
+ * \brief  Stop GSM HTTP SIM module
+ * \note   To use it again, use \ref GSM_HTTP_Begin function
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
 GSM_Result_t GSM_HTTP_End(gvol GSM_t* GSM, uint32_t blocking);
 
+/**
+ * \brief  Set content for HTTP request
+ * \note   This function does not set actual data for HTTP, but only sets content type, e.g. "application/json".
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
 GSM_Result_t GSM_HTTP_SetContent(gvol GSM_t* GSM, const char* content, uint32_t blocking);
-GSM_Result_t GSM_HTTP_SetData(gvol GSM_t* GSM, const void* data, uint32_t length, uint32_t blocking);
+
+/**
+ * \brief  Set data to be sent on HTTP body for POST or PUT methods
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *data: Data to be sent as body
+ * \param  btw: Number of bytes to send
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
+GSM_Result_t GSM_HTTP_SetData(gvol GSM_t* GSM, const void* data, uint32_t btw, uint32_t blocking);
+
+/**
+ * \brief  Execute HTTP request to server with given URL and method
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *url: Remote URL to use starting with "http://"
+ * \param  method: HTTP method to use. This parameter can be a value of \ref GSM_HTTP_Method_t enumeration
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
 GSM_Result_t GSM_HTTP_Execute(gvol GSM_t* GSM, const char* url, GSM_HTTP_Method_t method, uint32_t blocking);
-GSM_Result_t GSM_HTTP_Read(gvol GSM_t* GSM, void* data, uint32_t length, uint32_t* read, uint32_t blocking);
+
+/**
+ * \brief  Read data from HTTP response
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *data: Pointer to array to save data to
+ * \param  btr: Number of bytes to read from response
+ * \param  *br: Pointer to save number of actual data read from response
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
+GSM_Result_t GSM_HTTP_Read(gvol GSM_t* GSM, void* data, uint32_t btr, uint32_t* br, uint32_t blocking);
 
 /**
  * \brief  Checks if any data to read from HTTP response
  * \note   This functions only checks flags and does not inquiry GSM.
- *              It means that when you are not in RTOS or ASYNC mode, 
+ *              It means that when you are not in <b>RTOS</b> or <b>ASYNC</b> mode, 
  *              you have to manually call \ref GSM_Update function to parse any incoming data in a loop for specific timeout
  * \param  *GSM: Pointer to working \ref GSM_t structure
  * \param  blocking: Status whether this function should be blocking to check for response.
@@ -657,6 +1042,7 @@ uint32_t GSM_HTTP_DataAvailable(gvol GSM_t* GSM, uint32_t blocking);
 /**
  * \defgroup FTP_API
  * \brief    FTP based functions
+ * \note     This section is not yet in working state and has only some proof of concept functions
  * \{
  */
 GSM_Result_t GSM_FTP_Begin(gvol GSM_t* GSM, uint32_t blocking);
@@ -669,15 +1055,48 @@ GSM_Result_t GSM_FTP_Disconnect(gvol GSM_t* GSM, uint32_t blocking);
  * \}
  */
 
-//Callbacks API
-//Active command is IDLE just now
+/**
+ * \defgroup CALLBACK_API
+ * \brief    CALLBACK based functions
+ * \{
+ */
+
+/**
+ * \brief  Callback for IDLE state. 
+ *            It is called immidiatelly when API function call is not in blocking state and stack become IDLE
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \retval None
+ */
 void GSM_Callback_Idle(gvol GSM_t* GSM);
-//Call info has changed
+
+/**
+ * \brief  Callback for call info. It is call each time call status changes
+ * \note   It works for incoming and outgoing calls. Check \ref GSM_CALL_GetInfo function for more informations
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \retval None
+ */
 void GSM_Callback_CALL_Info(gvol GSM_t* GSM);
-//Ring word received!
+
+/**
+ * \brief  Callback for call ring. It is call each time "RING" is received from module
+ * \note   It works for incoming calls.
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \retval None
+ */
 void GSM_Callback_CALL_Ring(gvol GSM_t* GSM);
-//SMS received!
+
+/**
+ * \brief  Callback for SMS info. It is call each time when new SMS arrives
+ * \note   Check \ref GSM_SMS_GetReceivedInfo function for more informations about getting SMS data
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \retval None
+ */
 void GSM_Callback_SMS_Info(gvol GSM_t* GSM);
+
+/**
+ * \}
+ */
+
 
 /**
  * \}

@@ -25,3 +25,45 @@
  */
 #include "gsm_ll_template.h"
 
+/******************************************************************************/
+/******************************************************************************/
+/***      Copy this file to project directory and rename it to "gsm_ll.c"    **/
+/******************************************************************************/
+/******************************************************************************/
+
+uint8_t GSM_LL_Init(GSM_LL_t* LL) {
+	/* Init UART */
+
+	/* Init reset pin */
+
+	return 0;
+}
+
+
+uint8_t GSM_LL_SendData(GSM_LL_t* LL, const uint8_t* data, uint16_t count) {
+	/* Send data via UART */
+
+	return 0;
+}
+
+
+uint8_t GSM_LL_SetReset(GSM_LL_t* LL, uint8_t state) {
+	/* Set reset pin */
+	if (state == GSM_RESET_LOW) {
+		/* Set pin low */
+	} else {
+		/* Set pin high */
+	}
+
+	return 0;
+}
+
+uint8_t GSM_LL_SetRTS(GSM_LL_t* LL, uint8_t state) {
+	if (state == GSM_RTS_LOW) {
+		/* Set pin low */
+	} else {
+		/* Set pin high */
+	}
+
+	return 0;
+}
