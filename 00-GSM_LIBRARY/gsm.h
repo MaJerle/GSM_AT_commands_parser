@@ -342,7 +342,7 @@ typedef struct _GSM_FTP_t {
  */
 typedef enum _GSM_NetworkStatus_t {
     GSM_NetworkStatus_Searching = 0x00,                     /*!< Searching for network */
-    GSM_NetworkStatus_RegisteredHome,                       /*!< Registered in home network */
+    GSM_NetworkStatus_RegisteredHome = 0x01,                /*!< Registered in home network */
     GSM_NetworkStatus_NotRegistered,                        /*!< Not registered and not searching */
     GSM_NetworkStatus_RegistrationDenied,                   /*!< Registration has been denied */
     GSM_NetworkStatus_Unknown,                              /*!< Unknown status */
