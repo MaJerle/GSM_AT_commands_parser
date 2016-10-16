@@ -3,7 +3,7 @@
  * \email   tilen@majerle.eu
  * \website 
  * \license MIT
- * \brief   GSM config
+ * \brief   GSM System calls
  *	
 \verbatim
    ----------------------------------------------------------------------
@@ -31,61 +31,76 @@
    ----------------------------------------------------------------------
 \endverbatim
  */
-#ifndef GSM_CONF_H
-#define GSM_CONF_H 100
+#ifndef GSM_SYS_H
+#define GSM_SYS_H 100
 
 /* C++ detection */
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/* Include core libraries */
+#include "stdint.h"
+#include "stdlib.h"
+    
+/* Platform dependant */
+#include "cmsis_os.h"
+    
+/* Include library */
+#include "gsm.h"
+#include "gsm_config.h"
+
 /**
- * \defgroup CONFIG
- * \brief    GSM Config
+ * \defgroup GSM_SYS
+ * \brief    GSM Low-Level implementation
  * \{
  */
 
 /**
- * \brief  GSM Receive buffer size in units of bytes for processing.
- *
- *         Use as much as possible, but not less than 128 bytes.
+ * \defgroup GSM_SYS_Functions
+ * \brief    GSM Syscalls functions
+ * \{
  */
-#define GSM_BUFFER_SIZE                 512
 
 /**
- * \brief  GSM RTOS support enabled (1) or disabled (0)
+ * \brief  Creates a synchronization object
+ * \param  *Sync: Pointer to sync object to create in system
+ * \retval Successfull status:
+ *            - 0: Successful
+ *            - > 0: Error
  */
-#define GSM_RTOS                        1
+uint8_t GSM_SYS_Create(GSM_RTOS_SYNC_t* Sync);
 
 /**
- * \brief  RTOS sync object for mutex
+ * \brief  Deletes a synchronization object
+ * \param  *Sync: Pointer to sync object to delete from system
+ * \retval Successfull status:
+ *            - 0: Successful
+ *            - > 0: Error
  */
-#define GSM_RTOS_SYNC_t                 osMutexDef_t
+uint8_t GSM_SYS_Delete(GSM_RTOS_SYNC_t* Sync);
 
 /**
- * \brief  Timeout in milliseconds for mutex to access API
+ * \brief  Requests grant for specific sync object
+ * \param  *Sync: Pointer to sync object to request grant
+ * \retval Successfull status:
+ *            - 0: Successful
+ *            - > 0: Error
  */
-#define GSM_RTOS_TIMEOUT                180000
+uint8_t GSM_SYS_Request(GSM_RTOS_SYNC_t* Sync);
 
 /**
- * \brief  Async data processing enabled (1) or disabled (0)
- *
- * \note   This feature has sense when in non-RTOS mode and you wanna process income data async (in interrupt)
+ * \brief  Releases grant for specific sync object
+ * \param  *Sync: Pointer to sync object to release grant
+ * \retval Successfull status:
+ *            - 0: Successful
+ *            - > 0: Error
  */
-#define GSM_UPDATE_ASYNC                1
-
+uint8_t GSM_SYS_Release(GSM_RTOS_SYNC_t* Sync);
+    
 /**
- * \brief  Maximal SMS length in units of bytes
+ * \}
  */
-#define GSM_SMS_MAX_LENGTH              160
-
-/**
- * \brief  Maximal number of stored informations about received SMS at a time
- *
- *         When you are in other actions and you can't check SMS, 
- *         stack will save as many received SMS infos as possible (selected with this option)  
- */
-#define GSM_MAX_RECEIVED_SMS_INFO       3
 
 /**
  * \}

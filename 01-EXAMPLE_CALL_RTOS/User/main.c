@@ -1,5 +1,5 @@
 /**
- * Keil project example for GSM SIM800/900 for SMS and RTOS support
+ * Keil project example for GSM SIM800/900 for CALL and RTOS support
  *
  * @note      Check defines.h file for configuration settings!
  * @note      When using Nucleo F411 board, example has set 8MHz external HSE clock!
@@ -16,14 +16,12 @@
  *
  * \par Description
  *
- * This examples shows how you can receive SMS and read it.
- * If you send SMS with specific content, it will do actions with LED on board:
+ * This examples shows how you can receive CALL and answer it by pressing a button.
+ * It works in several ways:
  *
- * - LED ON: led will turn on,
- * - LED OFF: Led will turn off,
- * - LED TOGGLE: Led will toggle.
- *
- * After that, SMS with "OK" or "ERROR" should be returned to received number to confirm action
+ * - If someone is calling us, button press will answer call
+ * - If call is active, button press will hang up call
+ * - If no call active, button press will start call to desired number, check example below.
  *
  * \par Pinout for example (Nucleo STM32F411)
  *
@@ -58,14 +56,14 @@ CTS         PA3                 RTS from ST to CTS from GSM
 gvol GSM_t GSM;
 GSM_Result_t gsmRes;
 
-/* SMS read structure */
-GSM_SMS_Entry_t SMS_Entry;
-
 /* Pointer to SMS info */
-GSM_SmsInfo_t* SMS_Info = NULL;
+GSM_CallInfo_t* CallInfo = NULL;
 
 /* GSM pin code */
 #define GSM_PIN      "1234"
+
+/* Set number to call us */
+#define CALL_NUMBER  "your_number"
 
 /* Thread prototypes */
 void GSM_Update_Thread(void const* params);
@@ -131,47 +129,34 @@ void GSM_Main_Thread(void const* params) {
         /* Process callback checks */
         GSM_ProcessCallbacks(&GSM);
         
-        /* We have received SMS messages? */
-        while ((SMS_Info = GSM_SMS_GetReceivedInfo(&GSM, 1)) != NULL) {
-            /* Read SMS from memory */
-            if ((gsmRes = GSM_SMS_Read(&GSM, SMS_Info->Position, &SMS_Entry, 1)) == gsmOK) {
-                printf("SMS READ OK!\r\n");
-                
-                /* Make actions according to received SMS string */
-                if (strcmp(SMS_Entry.Data, "LED ON") == 0) {
-                    TM_DISCO_LedOn(LED_ALL);
-                    gsmRes = GSM_SMS_Send(&GSM, SMS_Entry.Number, "OK", 1);
-                } else if (strcmp(SMS_Entry.Data, "LED OFF") == 0) {
-                    TM_DISCO_LedOff(LED_ALL);
-                    gsmRes = GSM_SMS_Send(&GSM, SMS_Entry.Number, "OK", 1);
-                } else if (strcmp(SMS_Entry.Data, "LED TOGGLE") == 0) {
-                    TM_DISCO_LedToggle(LED_ALL);
-                    gsmRes = GSM_SMS_Send(&GSM, SMS_Entry.Number, "OK", 1);
-                } else {
-                    gsmRes = GSM_SMS_Send(&GSM, SMS_Entry.Number, "ERROR", 1);
-                }
-                
-                /* Send it back to user */
-                if (gsmRes == gsmOK) {
-                    printf("SEND BACK OK!\r\n");
-                } else {
-                    printf("Error trying to send: %d\r\n", gsmRes);
-                }
-            } else {
-                printf("Error trying to read: %d\r\n", gsmRes);
-            }
-            
-            /* Clear information about new SMS */
-            GSM_SMS_ClearReceivedInfo(&GSM, SMS_Info, 1);
-        }
-        
         /* If button is pressed */
         if (TM_DISCO_ButtonOnPressed()) {
-            /* Delete all SMS messages */
-            if ((gsmRes = GSM_SMS_MassDelete(&GSM, GSM_SMS_MassDelete_All, 1)) == gsmOK) {
-                printf("SMS MASS DELETE OK\r\n");
-            } else {
-                printf("Error trying to mass delete: %d\r\n", gsmRes);
+            /* Get call info */
+            CallInfo = GSM_CALL_GetInfo(&GSM, 1);
+            
+            /* No call active */
+            if (CallInfo->State == GSM_CallState_Disconnect) {
+                printf("Call disconnected, trying to call someone!\r\n");
+                /* Try to call someone */
+                if ((gsmRes = GSM_CALL_Voice(&GSM, CALL_NUMBER, 1)) == gsmOK) {
+                    printf("Calling!\r\n");
+                } else {
+                    printf("Error trying to call: %d\r\n", gsmRes);
+                }
+            } else if (CallInfo->State == GSM_CallState_Incoming) {
+                /* Someone is calling us, answer it */
+                if ((gsmRes = GSM_CALL_Answer(&GSM, 1)) == gsmOK) {
+                    printf("Answered OK\r\n");
+                } else {
+                    printf("Error trying to answer: %d\r\n", gsmRes);
+                }
+            } else if (CallInfo->State == GSM_CallState_Active) {
+                /* If call is active, hang up */
+                if ((gsmRes = GSM_CALL_HangUp(&GSM, 1)) == gsmOK) {
+                    printf("HangedUp OK\r\n");
+                } else {
+                    printf("Error trying to hang up: %d\r\n", gsmRes);
+                }
             }
         }
     }
@@ -181,8 +166,27 @@ void GSM_Main_Thread(void const* params) {
 /**               Library callbacks           **/
 /***********************************************/
 /* Called when new SMS info is received */
-void GSM_Callback_SMS_Info(gvol GSM_t* GSM) {
+void GSM_Callback_CALL_Info(gvol GSM_t* GSM) {
+    /* When call status is changed, notification is send immediatelly to this function */
+    CallInfo = GSM_CALL_GetInfo(GSM, 1);
+    
+    /* Call just went active? */
+    if (CallInfo->State == GSM_CallState_Active) {
+        if (CallInfo->Dir == GSM_CallDir_MO) {
+            printf("Someone has answered our call!\r\n");
+        } else {
+            printf("We have answered incoming call!\r\n");
+        }
+    }
+    /* Call just finished? */
+    if (CallInfo->State == GSM_CallState_Disconnect) {
+        printf("Call finished!\r\n");
+    }
+}
+/* Called when new SMS info is received */
+void GSM_Callback_CALL_Ring(gvol GSM_t* GSM) {
     /* When SMS is received, notification is send immediatelly to this function */
+    printf("RINGING!\r\n");
 }
 
 /* printf handler */
