@@ -1359,12 +1359,9 @@ PT_THREAD(PT_Thread_GPRS(struct pt* pt, gvol GSM_t* GSM)) {
     
     PT_BEGIN(pt);                                           /* Begin thread */
     
-    //if (GSM->ActiveCmd != CMD_GPRS_ATTACH && 
-    //    GSM->ActiveCmd != CMD_GPRS_DETACH) {                /* Check if network attached */
-        GSM_CMD_SAVE(GSM);                                  /* Save command */
-        GSM_EXECUTE_NETWORK_CHECK(GSM);                     /* Check for network state */
-        GSM_CMD_RESTORE(GSM);                               /* Restore command */
-    //}
+    GSM_CMD_SAVE(GSM);                                      /* Save command */
+    GSM_EXECUTE_NETWORK_CHECK(GSM);                         /* Check for network state */
+    GSM_CMD_RESTORE(GSM);                                   /* Restore command */
 
     if (GSM->ActiveCmd == CMD_GPRS_SETAPN) {                /* Process APN settings */
         GSM_CMD_SAVE(GSM);                                  /* Save command */
