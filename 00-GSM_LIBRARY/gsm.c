@@ -1353,7 +1353,6 @@ PT_THREAD(PT_Thread_DATETIME(struct pt* pt, gvol GSM_t* GSM)) {
 gstatic
 PT_THREAD(PT_Thread_GPRS(struct pt* pt, gvol GSM_t* GSM)) {
     char str[7], ch;
-    char terminate = 26;
     gstatic uint32_t start;
     GSM_CONN_t* conn = (GSM_CONN_t *)Pointers.Ptr1;
     
