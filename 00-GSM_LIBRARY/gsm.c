@@ -1353,8 +1353,10 @@ PT_THREAD(PT_Thread_DATETIME(struct pt* pt, gvol GSM_t* GSM)) {
 gstatic
 PT_THREAD(PT_Thread_GPRS(struct pt* pt, gvol GSM_t* GSM)) {
     char str[7], ch;
-    gstatic uint32_t start;
+    static uint32_t start, btw;
     GSM_CONN_t* conn = (GSM_CONN_t *)Pointers.Ptr1;
+    uint8_t terminate = 26;
+    static uint8_t tries;
     
     PT_BEGIN(pt);                                           /* Begin thread */
     
@@ -1629,44 +1631,53 @@ cmd_gprs_attach_clean:
         GSM_IDLE(GSM);                                      /* Go IDLE */
     } else if (GSM->ActiveCmd == CMD_GPRS_CIPSEND) {
         GSM_CMD_SAVE(GSM);                                  /* Save command */
-        
-        GSM_RESET_EVENTS_RESP(GSM);                         /* Reset events */
-        UART_SEND_STR(FROMMEM("AT+CIPSEND=?"));             /* Send number to GSM */
-        UART_SEND_STR(GSM_CRLF);
-        
-        PT_WAIT_UNTIL(pt, GSM->Events.F.RespBracket ||
-                            GSM->Events.F.RespError);       /* Wait for > character and timeout */
-        
-        if (Pointers.UI > 1460) {
-            Pointers.UI = 1460;
+        if (Pointers.Ptr2 != NULL) {
+            *(uint32_t *)Pointers.Ptr2 = 0;                 /* Set sent bytes to zero first */
         }
-        NumberToString(str, Pointers.UI);                   /* Get string from number */
-        GSM_RESET_EVENTS_RESP(GSM);                         /* Reset events */
-        UART_SEND_STR(FROMMEM("AT+CIPSEND=0,"));            /* Send number to GSM */
-        UART_SEND_STR(str);
-        UART_SEND_STR(GSM_CRLF);
-        StartCommand(GSM, CMD_GPRS_CIPSEND, NULL);          /* Start command */
         
-        PT_WAIT_UNTIL(pt, GSM->Events.F.RespBracket ||
-                            GSM->Events.F.RespError);       /* Wait for > character and timeout */
-        
-        if (GSM->Events.F.RespBracket) {                    /* We received bracket */
+        tries = 3;                                          /* Give 3 tries to send each packet */
+        do {            
+            btw = Pointers.UI > 1460 ? 1460 : Pointers.UI;  /* Set length to send */
+            
+            NumberToString(str, btw);                       /* Get string from number */
             GSM_RESET_EVENTS_RESP(GSM);                     /* Reset events */
-            UART_SEND((uint8_t *)Pointers.CPtr1, Pointers.UI);  /* Send data */
-            //UART_SEND_CH(&terminate);                       /* Send terminate character */
+            UART_SEND_STR(FROMMEM("AT+CIPSEND=0,"));        /* Send number to GSM */
+            UART_SEND_STR(str);
+            UART_SEND_STR(GSM_CRLF);
+            StartCommand(GSM, CMD_GPRS_CIPSEND, NULL);      /* Start command */
             
-            PT_WAIT_UNTIL(pt, GSM->Events.F.RespSendOk ||
-                                GSM->Events.F.RespSendFail);    /* Wait for OK or ERROR */
+            PT_WAIT_UNTIL(pt, GSM->Events.F.RespBracket ||
+                                GSM->Events.F.RespError);   /* Wait for > character and timeout */
             
-            GSM->ActiveResult = GSM->Events.F.RespSendOk ? gsmOK : gsmSENDFAIL; /* Set result to return */
-            if (GSM->ActiveResult == gsmOK) {
-                if (Pointers.Ptr2 != NULL) {
-                    *(uint16_t *)Pointers.Ptr2 = Pointers.UI;   /* Save number of bytes actually sent */
+            if (GSM->Events.F.RespBracket) {                /* We received bracket */
+                GSM_RESET_EVENTS_RESP(GSM);                 /* Reset events */
+                UART_SEND((uint8_t *)Pointers.CPtr1, btw);  /* Send data */
+                UART_SEND_CH(&terminate);
+                
+                PT_WAIT_UNTIL(pt, GSM->Events.F.RespSendOk ||
+                                    GSM->Events.F.RespSendFail ||
+                                    GSM->Events.F.RespError);   /* Wait for OK or ERROR */
+                
+                GSM->ActiveResult = GSM->Events.F.RespSendOk ? gsmOK : gsmSENDFAIL; /* Set result to return */
+                
+                if (GSM->ActiveResult == gsmOK) {
+                    if (Pointers.Ptr2 != NULL) {
+                        *(uint32_t *)Pointers.Ptr2 = *(uint32_t *)Pointers.Ptr2 + btw;  /* Increase number of sent bytes */
+                    }
                 }
+            } else if (GSM->Events.F.RespError) {
+                GSM->ActiveResult = gsmERROR;               /* Process error */
             }
-        } else if (GSM->Events.F.RespError) {
-            GSM->ActiveResult = gsmERROR;                   /* Process error */
-        }
+            if (GSM->ActiveResult == gsmOK) {
+                tries = 3;                                  /* Reset number of tries */
+                
+                Pointers.UI -= btw;                         /* Decrease number of sent bytes */
+                Pointers.CPtr1 = (uint8_t *)Pointers.CPtr1 + btw;   /* Set new data memory location to send */
+            } else {
+                tries--;                                    /* We failed, decrease number of tries and start over */
+            }
+        } while (Pointers.UI && tries);                     /* Until anything to send */
+        
         GSM_CMD_RESTORE(GSM);                               /* Restore command */
         GSM_IDLE(GSM);                                      /* Go IDLE mode */
     } else if (GSM->ActiveCmd == CMD_GPRS_CIPRXGET) {       /* Read data from device */
@@ -1696,10 +1707,9 @@ cmd_gprs_attach_clean:
         if (GSM->ActiveResult == gsmOK) {
             conn->BytesReadTotal += conn->BytesRead;        /* Increase number of total read bytes */
             if (Pointers.Ptr2 != NULL) {
-                *(uint16_t *)Pointers.Ptr2 = conn->BytesRead;   /* Save number of read bytes in last request */
+                *(uint32_t *)Pointers.Ptr2 = conn->BytesRead;   /* Save number of read bytes in last request */
             }
-        }
-        
+        }        
         GSM_CMD_RESTORE(GSM);                               /* Restore command */
         GSM_IDLE(GSM);                                      /* Go IDLE mode */
     } else if (GSM->ActiveCmd == CMD_GPRS_HTTPBEGIN) {
@@ -2589,8 +2599,8 @@ GSM_Result_t GSM_GPRS_Detach(gvol GSM_t* GSM, uint32_t blocking) {
 /******************************************************************************/
 /***                           CLIENT TCP/UDP API                            **/
 /******************************************************************************/
-GSM_Result_t GSM_CONN_ConnStart(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, 
-    GSM_CONN_ConnType_t type, const char* host, uint16_t port, uint32_t blocking) {
+GSM_Result_t GSM_CONN_Start(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, 
+    GSM_CONN_Type_t type, const char* host, uint16_t port, uint32_t blocking) {
         
     GSM_CHECK_INPUTS(conn != NULL && host != NULL);         /* Check valid data */
     GSM_CHECK_BUSY(GSM);                                    /* Check busy status */
@@ -2598,7 +2608,7 @@ GSM_Result_t GSM_CONN_ConnStart(gvol GSM_t* GSM, gvol GSM_CONN_t* conn,
      
     Pointers.Ptr1 = conn;                                   /* Save connection pointer */
     Pointers.CPtr1 = host;                                  /* Save pointers */
-    if (type == GSM_CONN_ConnType_TCP) {
+    if (type == GSM_CONN_Type_TCP) {                    /* Check connection type */
         Pointers.CPtr2 = FROMMEM("TCP");                    /* TCP connection */
     } else {
         Pointers.CPtr2 = FROMMEM("UDP");                    /* UDP connection */
@@ -2610,23 +2620,23 @@ GSM_Result_t GSM_CONN_ConnStart(gvol GSM_t* GSM, gvol GSM_CONN_t* conn,
     GSM_RETURN_BLOCKING(GSM, blocking, 1000);               /* Return with blocking support */
 }
 
-GSM_Result_t GSM_CONN_ConnSend(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, const void* data, uint16_t btw, uint16_t* bw, uint32_t blocking) {
+GSM_Result_t GSM_CONN_Send(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, const void* data, uint16_t btw, uint32_t* bw, uint32_t blocking) {
     GSM_CHECK_INPUTS(conn != NULL && data != NULL && btw);  /* Check valid data */
     GSM_CHECK_BUSY(GSM);                                    /* Check busy status */
     GSM_ACTIVE_CMD(GSM, CMD_GPRS_CIPSEND);                  /* Set active command */
      
     Pointers.Ptr1 = conn;                                   /* Save connection pointer */
+    Pointers.Ptr2 = bw;                                     /* Pointer to actual data sent */
     Pointers.CPtr1 = data;                                  /* Save data pointer */
     Pointers.UI = btw;                                      /* Save data length */
-    Pointers.Ptr2 = bw;                                     /* Pointer to actual data sent */
     if (bw) {
         *bw = 0;
     }
     
-    GSM_RETURN_BLOCKING(GSM, blocking, 5000);               /* Return with blocking support */
+    GSM_RETURN_BLOCKING(GSM, blocking, 10000);              /* Return with blocking support */
 }
 
-GSM_Result_t GSM_CONN_ConnReceive(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, void* data, uint16_t btr, uint16_t* br, uint16_t timeBeforeRead, uint32_t blocking) {
+GSM_Result_t GSM_CONN_Receive(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, void* data, uint16_t btr, uint32_t* br, uint16_t timeBeforeRead, uint32_t blocking) {
     GSM_CHECK_INPUTS(conn != NULL && data != NULL && btr);  /* Check valid data */
     GSM_CHECK_BUSY(GSM);                                    /* Check busy status */
     GSM_ACTIVE_CMD(GSM, CMD_GPRS_CIPRXGET);                 /* Set active command */
@@ -2645,7 +2655,7 @@ GSM_Result_t GSM_CONN_ConnReceive(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, void* 
     GSM_RETURN_BLOCKING(GSM, blocking, 1000);               /* Return with blocking support */
 }
 
-GSM_Result_t GSM_CONN_ConnClose(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, uint32_t blocking) {
+GSM_Result_t GSM_CONN_Close(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, uint32_t blocking) {
     GSM_CHECK_INPUTS(conn != NULL);                         /* Check valid data */
     GSM_CHECK_BUSY(GSM);                                    /* Check busy status */
     GSM_ACTIVE_CMD(GSM, CMD_GPRS_CIPCLOSE);                 /* Set active command */
