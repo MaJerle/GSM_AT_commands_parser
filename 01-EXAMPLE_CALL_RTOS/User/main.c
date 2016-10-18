@@ -100,7 +100,7 @@ int main(void) {
 
 /* 1ms handler */
 void TM_DELAY_1msHandler() {
-    GSM_UpdateTime(&GSM, 1);                /* Update ESP8266 library time for 1 ms */
+    GSM_UpdateTime(&GSM, 1);                /* Update GSM library time for 1 ms */
     osSystickHandler();                     /* Kernel systick handler processing */
 }
 
