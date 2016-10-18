@@ -279,10 +279,10 @@ typedef struct _GSM_PB_Entry_t {
 /**
  * \brief  Connection type enumeration
  */
-typedef enum _GSM_CONN_ConnType_t {
-    GSM_CONN_ConnType_TCP,                                  /*!< Create TCP connection  */
-    GSM_CONN_ConnType_UPD                                   /*!< Create UDP connection */
-} GSM_CONN_ConnType_t;
+typedef enum _GSM_CONN_Type_t {
+    GSM_CONN_Type_TCP,                                      /*!< Create TCP connection  */
+    GSM_CONN_Type_UPD                                       /*!< Create UDP connection */
+} GSM_CONN_Type_t;
 
 /**
  * \brief  Connection structure for GSM
@@ -897,13 +897,13 @@ GSM_Result_t GSM_GPRS_Detach(gvol GSM_t* GSM, uint32_t blocking);
  * \brief  Start a new connection
  * \param  *GSM: Pointer to working \ref GSM_t structure
  * \param  *conn: Pointer to empty \ref GSM_CONN_t structure for connection identifier
- * \param  type: Connection type. This parameter can be a value of \ref GSM_CONN_ConnType_t enumeration
+ * \param  type: Connection type. This parameter can be a value of \ref GSM_CONN_Type_t enumeration
  * \param  *host: Pointer to host where to connect. Can be a domain name or IP address, both in sting format
  * \param  port: Port to connect to
  * \param  blocking: Status whether this function should be blocking to check for response
  * \retval Member of \ref GSM_Result_t enumeration
  */
-GSM_Result_t GSM_CONN_ConnStart(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, GSM_CONN_ConnType_t type, const char* host, uint16_t port, uint32_t blocking);
+GSM_Result_t GSM_CONN_Start(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, GSM_CONN_Type_t type, const char* host, uint16_t port, uint32_t blocking);
 
 /**
  * \brief  Send data on active connection
@@ -915,7 +915,7 @@ GSM_Result_t GSM_CONN_ConnStart(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, GSM_CONN
  * \param  blocking: Status whether this function should be blocking to check for response
  * \retval Member of \ref GSM_Result_t enumeration
  */
-GSM_Result_t GSM_CONN_ConnSend(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, const void* data, uint16_t btw, uint16_t* bw, uint32_t blocking);
+GSM_Result_t GSM_CONN_Send(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, const void* data, uint16_t btw, uint32_t* bw, uint32_t blocking);
 
 /**
  * \brief  Read received data on connection
@@ -929,7 +929,7 @@ GSM_Result_t GSM_CONN_ConnSend(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, const voi
  * \param  blocking: Status whether this function should be blocking to check for response
  * \retval Member of \ref GSM_Result_t enumeration
  */
-GSM_Result_t GSM_CONN_ConnReceive(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, void* data, uint16_t btr, uint16_t* br, uint16_t timeBeforeRead, uint32_t blocking);
+GSM_Result_t GSM_CONN_Receive(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, void* data, uint16_t btr, uint32_t* br, uint16_t timeBeforeRead, uint32_t blocking);
 
 /**
  * \brief  Close active connection
@@ -938,7 +938,7 @@ GSM_Result_t GSM_CONN_ConnReceive(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, void* 
  * \param  blocking: Status whether this function should be blocking to check for response
  * \retval Member of \ref GSM_Result_t enumeration
  */
-GSM_Result_t GSM_CONN_ConnClose(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, uint32_t blocking);
+GSM_Result_t GSM_CONN_Close(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, uint32_t blocking);
 
 /**
  * \brief  Checks if any data to read from connection response
