@@ -1,5 +1,5 @@
 /**
- * Keil project example for GSM SIM800/900 for HTTP and RTOS support
+ * Keil project example for GSM SIM800/900 for CLIENT and RTOS support
  *
  * @note      Check defines.h file for configuration settings!
  * @note      When using Nucleo F411 board, example has set 8MHz external HSE clock!
@@ -16,15 +16,10 @@
  *
  * \par Description
  *
- * This examples shows how you can make HTTP request to server and get HTTP response from it
+ * This examples shows how you can make client TCP/UDP request to server and communicate with it
  *
- * When button is pressed, 2 actions will be executed.
- * Actions will toggle between button presses:
- *
- * - GET method to "http://stm32f4-discovery.net/gsm_example.php"
- * - POST method to "http://stm32f4-discovery.net/gsm_example.php" with data sent to server
- *
- * In both cases, responses will be returned and readed with stack.
+ * When button is pressed, module will try to connect to GPRS, connect to server,
+ * send some request (in our case GET request over TCP) and wait for response within 5 seconds timeout.
  *
  * \par Pinout for example (Nucleo STM32F411)
  *
@@ -72,15 +67,24 @@ GSM_SmsInfo_t* SMS_Info = NULL;
 #define GSM_APN_USER    ""
 #define GSM_APN_PASS    ""
 
-/* Request URL */
-#define GSM_HTTP_URL    "http://stm32f4-discovery.net/gsm_example.php"
+/* Domain or IP for opening connection */
+#define GSM_DOMAIN      "stm32f4-discovery.net"
+#define GSM_PORT        80
+
+/* Connection structure */
+GSM_CONN_t Conn;
 
 /* Array to receive data */
 uint8_t receive[1000];
 uint32_t br;
 
-/* Array with data to send */
-uint8_t send[] = "Hello from GSM module! The same as I sent you I just get back!";
+/* Data to send once we are connected */
+uint8_t send[] = ""
+"GET /gsm_example.php HTTP/1.1\r\n"
+"Host: stm32f4-discovery.net\r\n"
+"Connection: close\r\n"
+"\r\n";
+uint32_t bw;
 
 /* Thread prototypes */
 void GSM_Update_Thread(void const* params);
@@ -155,63 +159,40 @@ void GSM_Main_Thread(void const* params) {
             if ((gsmRes = GSM_GPRS_Attach(&GSM, GSM_APN, GSM_APN_USER, GSM_APN_PASS, 1)) == gsmOK) {
                 printf("GPRS Attached\r\n");
                 
-                /* We are connected, now begin HTTP */
-                if ((gsmRes = GSM_HTTP_Begin(&GSM, 1)) == gsmOK) {
-                    printf("HTTP Begin OK\r\n");
+                /* Try to connect to server */
+                if ((gsmRes = GSM_CONN_Start(&GSM, &Conn, GSM_CONN_Type_TCP, GSM_DOMAIN, GSM_PORT, 1)) == gsmOK) {
+                    printf("Connected to server!\r\n");
                     
-                    /* Select job according to selected action */
-                    if (action) {
-                        /* GET REQUEST */
-                        /* Make actual HTTP request */
-                        if ((gsmRes = GSM_HTTP_Execute(&GSM, GSM_HTTP_URL, GSM_HTTP_Method_GET, 1)) == gsmOK) {
-                            /* HTTP request executed to server, wait for response data */
-                            while (GSM_HTTP_DataAvailable(&GSM, 1)) {
-                                /* Read as many bytes as possible */
-                                if ((gsmRes = GSM_HTTP_Read(&GSM, receive, sizeof(receive), &br, 1)) == gsmOK) {
-                                    printf("Successfully read %d/%d bytes of data\r\n", br, sizeof(receive));
+                    /* We are connected, send data */
+                    if ((gsmRes = GSM_CONN_Send(&GSM, &Conn, send, sizeof(send), &bw, 1)) == gsmOK) {
+                        volatile uint32_t timeout = GSM.Time;
+                        printf("Data sent to server! Number of bytes sent: %d\r\n", bw);
+                        
+                        do {
+                            /* If we have data available to read */
+                            if (GSM_CONN_DataAvailable(&GSM, &Conn, 1)) {
+                                if ((GSM_CONN_Receive(&GSM, &Conn, receive, sizeof(receive), &br, 10, 1)) == gsmOK) {
+                                    printf("Received %d bytes of data\r\n", br);
+                                    
+                                    /* Reset timeout */
+                                    timeout = GSM.Time;
                                 } else {
-                                    printf("Error trying to read %d bytes of data: %d\r\n", sizeof(receive), gsmRes);
+                                    printf("Error trying to receive data: %d\r\n", gsmRes);
                                 }
                             }
+                        } while (GSM.Time - timeout < 2000);
+                        
+                        /* Close connection */
+                        if ((gsmRes = GSM_CONN_Close(&GSM, &Conn, 1)) == gsmOK) {
+                            printf("Connection closed!\r\n");
                         } else {
-                            printf("Could not execute request to server: %d\r\n", gsmRes);
+                            printf("Error trying to close connection: %d\r\n", gsmRes);
                         }
                     } else {
-                        /* POST REQUEST with data */
-                        
-                        /* Set data to send first */
-                        if ((gsmRes = GSM_HTTP_SetData(&GSM, send, sizeof(send), 1)) == gsmOK) {
-                            /* Make actual HTTP request */
-                            if ((gsmRes = GSM_HTTP_Execute(&GSM, GSM_HTTP_URL, GSM_HTTP_Method_POST, 1)) == gsmOK) {
-                                /* HTTP request executed to server, wait for response data */
-                                while (GSM_HTTP_DataAvailable(&GSM, 1)) {
-                                    /* Read as many bytes as possible */
-                                    /* We are expecting only one read here as we are expecting less data than our array can hold! */
-                                    if ((gsmRes = GSM_HTTP_Read(&GSM, receive, sizeof(receive), &br, 1)) == gsmOK) {
-                                        printf("Successfully read %d/%d bytes of data\r\n", br, sizeof(receive));
-                                    
-                                        /* Check if data are the same */
-                                        if (strncmp((void *)receive, (void *)send, sizeof(send)) == 0) {
-                                            printf("Received and sent data are the same!\r\n");
-                                        } else {
-                                            printf("Received is not the same as sent!\r\n");
-                                        }
-                                    } else {
-                                        printf("Error trying to read %d bytes of data: %d\r\n", sizeof(receive), gsmRes);
-                                    }
-                                }
-                            } else {
-                                printf("Could not execute request to server: %d\r\n", gsmRes);
-                            }
-                        } else {
-                            printf("Error trying to set POST data: %d\r\n", gsmRes);
-                        }
+                        printf("Error trying to connect to server: %d\r\n", gsmRes);
                     }
-                    
-                    /* End HTTP */
-                    GSM_HTTP_End(&GSM, 1);
                 } else {
-                    printf("Problems trying to begin HTTP: %d\r\n", gsmRes);
+                    printf("Could not execute request to server: %d\r\n", gsmRes);
                 }
                 
                 /* Detach from GPRS */
