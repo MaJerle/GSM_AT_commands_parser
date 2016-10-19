@@ -54,12 +54,6 @@ CTS         PA3                 RTS from ST to CTS from GSM
 gvol GSM_t GSM;
 GSM_Result_t gsmRes;
 
-/* SMS read structure */
-GSM_SMS_Entry_t SMS_Entry;
-
-/* Pointer to SMS info */
-GSM_SmsInfo_t* SMS_Info = NULL;
-
 /* GSM pin code */
 #define GSM_PIN         "1234"
 /* GSM APN settings */
