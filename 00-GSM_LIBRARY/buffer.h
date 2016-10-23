@@ -203,7 +203,7 @@ void BUFFER_Reset(BUFFER_t* Buffer);
 /**
  * @brief  Checks if specific element value is stored in buffer
  * @param  *Buffer: Pointer to @ref BUFFER_t structure
- * @param  uint8_t Element: Element to check
+ * @param  Element: Element to check
  * @retval Status of element:
  *            -  < 0: Element was not found
  *            - >= 0: Element found, location in buffer is returned

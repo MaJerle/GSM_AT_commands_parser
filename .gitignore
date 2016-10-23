@@ -11,19 +11,18 @@
 *.lnp
 *.lst
 *.ini
+*.MajerleT
 
 
 .gitignore
 
 00-DOCUMENTATIONSOURCE/
 00-DOCUMENTATION/
-00-GSM_LIBRARY/
 00-RELEASES/
 01-DEV/
 01-DEV_RTOS/
 
-
 SIM800_Series_AT_Command_Manual_V1.09.pdf
-README.md
 .gitattributes
 delete_unused_files.bat
+00-GSM_LIBRARY/x_application_note.h

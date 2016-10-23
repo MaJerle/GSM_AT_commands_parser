@@ -47,9 +47,18 @@ extern "C" {
  * \par Features
  *
 \verbatim
-- Platform independant GSM AT Parser library for SIMcom modules
-- Written in ANSII C89
+- Supports official AT commands from SIMcom modules
+- Supports RAM limited embedded systems
+- Supports CALL, SMS, GPRS, TCP/UPD CLIENT, HTTP, PHONEBOOK and others parts, which are all supported directly using AT commands
+- Supports different platforms (written in ANSI C)
+- Supports RAM limited embedded systems
+- RTOS first written with support for blocking or non-blocking (non RTOS) API function calls
+- Free to use
 \endverbatim
+ *
+ * \par Download
+ * 
+ * Download and full source code with examples can be found on official <a href="https://github.com/MaJerle/GSM_AT_Commands_parser">Github repository</a>.
  */
 #include "stdlib.h"
 #include "string.h"
@@ -876,6 +885,7 @@ GSM_Result_t GSM_GPRS_Attach(gvol GSM_t* GSM, const char* apn, const char* user,
 
 /**
  * \brief  Disconnects module from GPRS network
+ * \param  *GSM: Pointer to working \ref GSM_t structure
  * \param  blocking: Status whether this function should be blocking to check for response
  * \retval Member of \ref GSM_Result_t enumeration
  */
@@ -986,6 +996,7 @@ GSM_Result_t GSM_HTTP_End(gvol GSM_t* GSM, uint32_t blocking);
  * \brief  Set content for HTTP request
  * \note   This function does not set actual data for HTTP, but only sets content type, e.g. "application/json".
  * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *content: Pointer to content type string
  * \param  blocking: Status whether this function should be blocking to check for response
  * \retval Member of \ref GSM_Result_t enumeration
  */
