@@ -567,6 +567,7 @@ void ParseCIPRXGET(gvol GSM_t* GSM, GSM_CONN_t* conn, char* str) {
         }
         if (conn != NULL) {
             conn->Flags.F.RxGetReceived = 1;                /* We have new incoming data available in buffer to read for specific connection */
+            conn->Flags.F.CallGetReceived = 1;              /* Notify user with callback */
         }
     }
     str += cnt + 1;
@@ -610,7 +611,7 @@ void ParseReceived(gvol GSM_t* GSM, Received_t* Received) {
     /* Check for error */
     if (!is_ok) {
         if (*str == '+') {
-            is_error = strncmp(str, "+CME ERROR:", 11) == 0;    /* Check if error received */
+            is_error = strncmp(str, "+CME ERROR:", 11) == 0;/* Check if error received */
         }
         if (!is_error) {
             is_error = strcmp(str, GSM_ERROR) == 0;         /* Check if error received */
@@ -624,15 +625,15 @@ void ParseReceived(gvol GSM_t* GSM, Received_t* Received) {
     
     if (CMD_IS_ACTIVE_INFO(GSM) && !is_ok && !is_error) {   /* Active command regarding GSM INFO */
         if (GSM->ActiveCmd == CMD_INFO_CGMI) {
-            if (strncmp(str, FROMMEM("AT+CGMI"), 7) != 0) {       /* Device manufacturer */
+            if (strncmp(str, FROMMEM("AT+CGMI"), 7) != 0) { /* Device manufacturer */
                 strncpy((char *)Pointers.Ptr1, str, length - 2);    /* Copy received string to memory */
             }
         } else if (GSM->ActiveCmd == CMD_INFO_CGMM) {
-            if (strncmp(str, FROMMEM("AT+CGMM"), 7) != 0) {       /* Device number */
+            if (strncmp(str, FROMMEM("AT+CGMM"), 7) != 0) { /* Device number */
                 strncpy((char *)Pointers.Ptr1, str, length - 2);    /* Copy received string to memory */
             }
         } else if (GSM->ActiveCmd == CMD_INFO_CGMR) {
-            if (strncmp(str, FROMMEM("AT+CGMR"), 7) != 0) {       /* Device revision */
+            if (strncmp(str, FROMMEM("AT+CGMR"), 7) != 0) { /* Device revision */
                 if (strncmp(str, "Revision:", 9) == 0) {    /* Remove revision part if exists */
                     str += 9;
                     length -= 9;
@@ -640,7 +641,7 @@ void ParseReceived(gvol GSM_t* GSM, Received_t* Received) {
                 strncpy((char *)Pointers.Ptr1, str, length - 2);    /* Copy received string to memory */
             }
         } else if (GSM->ActiveCmd == CMD_INFO_CGSN) {
-            if (strncmp(str, FROMMEM("AT+CGSN"), 7) != 0) {       /* Device serial number */
+            if (strncmp(str, FROMMEM("AT+CGSN"), 7) != 0) { /* Device serial number */
                 strncpy((char *)Pointers.Ptr1, str, length - 2);    /* Copy received string to memory */
             }
         }
@@ -655,7 +656,7 @@ void ParseReceived(gvol GSM_t* GSM, Received_t* Received) {
     }
     
     if (GSM->ActiveCmd == CMD_GPRS_CIPSTART && CHARISNUM(*str)) {   /* We are trying to connect as client */
-        if (strcmp(&str[1], FROMMEM(", CONNECT OK\r\n")) == 0) {  /* n, CONNECT OK received */
+        if (strcmp(&str[1], FROMMEM(", CONNECT OK\r\n")) == 0) {    /* n, CONNECT OK received */
             GSM->Events.F.RespConnectOk = 1;
         } else if (strcmp(&str[1], FROMMEM(", CONNECT FAIL\r\n")) == 0) {/* n, CONNECT FAIL received */
             GSM->Events.F.RespConnectFail = 1;
@@ -710,7 +711,7 @@ void ParseReceived(gvol GSM_t* GSM, Received_t* Received) {
         } else if (CMD_IS_ACTIVE_PB(GSM)) {                 /* Currently active command is regarding PHONEBOOK */
             if (strncmp(str, FROMMEM("+CPBR:"), 6) == 0) {
                 ParseCPBR(GSM, (GSM_PB_Entry_t *)Pointers.Ptr1, str + 7);   /* Parse +CPBR statement */
-                if (GSM->ActiveCmd == CMD_PB_LIST) {      /* Check for GETALL or SEARCH commands */
+                if (GSM->ActiveCmd == CMD_PB_LIST) {        /* Check for GETALL or SEARCH commands */
                     Pointers.Ptr1 = ((GSM_PB_Entry_t *)Pointers.Ptr1) + 1;  /* Set new pointer offset in data array */
                     *(uint16_t *)Pointers.Ptr2 = (*(uint16_t *)Pointers.Ptr2) + 1;  /* Increase number of received entries */
                 }
@@ -2132,6 +2133,7 @@ GSM_Result_t GSM_Update(gvol GSM_t* GSM) {
             if (!conn->BytesReadRemaining) {                /* We finished? */
                 GSM->Flags.F.CLIENT_Read_Data = 0;          /* Reset flag, go back to normal parsing */
                 conn->Flags.F.RxGetReceived = 0;            /* Reset RX received flag */
+                conn->Flags.F.CallGetReceived = 0;          /* Reset flag for notification if not already */
                 processedCount = 0;                         /* Stop further processing */
             }
         } else if (GSM->ActiveCmd == CMD_SMS_READ && GSM->Flags.F.SMS_Read_Data) {  /* We are execution SMS read command and we are trying to read actual SMS data */
@@ -2192,6 +2194,7 @@ GSM_Result_t GSM_UpdateTime(gvol GSM_t* GSM, uint32_t millis) {
 }
 
 GSM_Result_t GSM_ProcessCallbacks(gvol GSM_t* GSM) {
+    uint8_t i;
     /* Process callbacks */
     if (GSM->ActiveCmd == CMD_IDLE && GSM->Flags.F.Call_Idle) {
         GSM->Flags.F.Call_Idle = 0;
@@ -2208,6 +2211,16 @@ GSM_Result_t GSM_ProcessCallbacks(gvol GSM_t* GSM) {
     if (GSM_IS_READY(GSM) && GSM->Flags.F.SMS_CMTI_Received) {
         GSM->Flags.F.SMS_CMTI_Received = 0;
         GSM_Callback_SMS_Info(GSM);
+    }
+    /* Check connection specific callbacks */
+    for (i = 0; i < 6; i++) {
+        if (!GSM->Conns[i]) {                               /* Check if connection is valid */
+            continue;
+        }
+        if (GSM_IS_READY(GSM) && GSM->Conns[i]->Flags.F.CallGetReceived) {  /* Notify user about new data */
+            GSM->Conns[i]->Flags.F.CallGetReceived = 0;     /* Reset flag status */
+            GSM_Callback_CLIENT_DataReceived(GSM, GSM->Conns[i]);   /* Call user function */
+        }
     }
     GSM_RETURN(GSM, gsmOK);
 }
@@ -2814,5 +2827,11 @@ __weak void GSM_Callback_CALL_Ring(gvol GSM_t* GSM) {
 __weak void GSM_Callback_SMS_Info(gvol GSM_t* GSM) {
     /* NOTE: This function Should not be modified, when the callback is needed,
            the GSM_Callback_SMS_Info should be implemented in the user file
+    */
+}
+
+__weak void GSM_Callback_CLIENT_DataReceived(gvol GSM_t* GSM, GSM_CONN_t* Conn) {
+    /* NOTE: This function Should not be modified, when the callback is needed,
+           the GSM_Callback_CLIENT_DataReceived should be implemented in the user file
     */
 }

@@ -308,7 +308,8 @@ typedef struct _GSM_CONN_t {
     union {
         struct {
             uint8_t Active:1;                               /*!< Connection active flag */
-            uint8_t RxGetReceived:1;                        /*!< RXGET was received waiting to read data! */
+            uint8_t RxGetReceived:1;                        /*!< RXGET was received waiting to read data */
+            uint8_t CallGetReceived:1;                      /*!< RXGET was received, notify user about new data */
         } F;
         uint8_t Value;                                      /*!< Value containing all the flags in single memory */
     } Flags;                                                /*!< Union with all the listed flags */
@@ -1103,6 +1104,14 @@ void GSM_Callback_CALL_Ring(gvol GSM_t* GSM);
  * \retval None
  */
 void GSM_Callback_SMS_Info(gvol GSM_t* GSM);
+
+/**
+ * \brief  Callback for data received to SIM device and ready to read that data
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *Conn: Pointer to working \ref GSM_CONN_t structure about active connection
+ * \retval None
+ */
+void GSM_Callback_CLIENT_DataReceived(gvol GSM_t* GSM, GSM_CONN_t* Conn);
 
 /**
  * \}
