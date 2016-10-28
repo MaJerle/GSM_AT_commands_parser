@@ -1,7 +1,7 @@
 /**
  * \author  Tilen Majerle
  * \email   tilen@majerle.eu
- * \website http://esp8266at.com
+ * \website https://majerle.eu/projects/gsm-at-commands-parser-for-embedded-systems
  * \license MIT
  * \brief   GSM Library
  *	
@@ -43,22 +43,6 @@ extern "C" {
  * \defgroup GSM
  * \brief  Platform independent, written in ANSII C, GSM AT parser library for SIMcom modules   
  * \{
- *
- * \par Features
- *
-\verbatim
-- Supports official AT commands from SIMcom modules
-- Supports RAM limited embedded systems
-- Supports CALL, SMS, GPRS, TCP/UPD CLIENT, HTTP, PHONEBOOK and others parts, which are all supported directly using AT commands
-- Supports different platforms (written in ANSI C)
-- Supports RAM limited embedded systems
-- RTOS first written with support for blocking or non-blocking (non RTOS) API function calls
-- Free to use
-\endverbatim
- *
- * \par Download
- * 
- * Download and full source code with examples can be found on official <a href="https://github.com/MaJerle/GSM_AT_Commands_parser">Github repository</a>.
  */
 #include "stdlib.h"
 #include "string.h"
@@ -290,7 +274,7 @@ typedef struct _GSM_PB_Entry_t {
  */
 typedef enum _GSM_CONN_Type_t {
     GSM_CONN_Type_TCP,                                      /*!< Create TCP connection  */
-    GSM_CONN_Type_UPD                                       /*!< Create UDP connection */
+    GSM_CONN_Type_UDP                                       /*!< Create UDP connection */
 } GSM_CONN_Type_t;
 
 /**
@@ -897,7 +881,7 @@ GSM_Result_t GSM_GPRS_Detach(gvol GSM_t* GSM, uint32_t blocking);
 
 /**
  * \defgroup CONN_API
- * \brief    TCP/UPD connection based functions
+ * \brief    TCP/UDP connection based functions
  * \{
  *
  * \note   Concept of connections is done to support multiple connections at the same time.
