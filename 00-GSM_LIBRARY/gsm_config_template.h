@@ -72,7 +72,7 @@ extern "C" {
  *
  * \note   This feature has sense when in non-RTOS mode and you wanna process income data async (in interrupt)
  */
-#define GSM_UPDATE_ASYNC                1
+#define GSM_ASYNC                       1
 
 /**
  * \brief  Maximal SMS length in units of bytes

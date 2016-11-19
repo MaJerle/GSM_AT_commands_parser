@@ -3,6 +3,7 @@
  * \email   tilen@majerle.eu
  * \website https://majerle.eu/projects/gsm-at-commands-parser-for-embedded-systems
  * \license MIT
+ * \version 0.2.1
  * \brief   GSM Library
  *	
 \verbatim
@@ -32,7 +33,7 @@
 \endverbatim
  */
 #ifndef GSM_H
-#define GSM_H 010
+#define GSM_H 021
 
 /* C++ detection */
 #ifdef __cplusplus
@@ -41,12 +42,13 @@ extern "C" {
 
 /**
  * \defgroup GSM
- * \brief  Platform independent, written in ANSII C, GSM AT parser library for SIMcom modules   
+ * \brief    Platform independent, written in ANSII C, GSM AT parser library for SIMcom modules   
  * \{
  */
 #include "stdlib.h"
 #include "string.h"
 #include "stdint.h"
+#include "stdio.h"
 
 /* Proto threads */
 #include "pt/pt.h"
@@ -72,7 +74,6 @@ extern "C" {
 #define gvol          volatile
 #define gstatic       static
 
-
 /* Configuration defines */
 
 /**
@@ -92,7 +93,7 @@ typedef enum _GSM_Result_t {
     gsmOK = 0x00,                                           /*!< OK status */
     gsmERROR,                                               /*!< Error status */
     gsmBUSY,                                                /*!< GSM is busy right now */
-    gsmPARERR,                                              /*!< Parameter errors */
+    gsmPARERROR,                                            /*!< Parameter errors */
     gsmTIMEOUT,                                             /*!< Timeout occurred */
     gsmSENDFAIL,                                            /*!< Send data failed on connection */
     
@@ -344,6 +345,36 @@ typedef enum _GSM_NetworkStatus_t {
 } GSM_NetworkStatus_t;
 
 /**
+ * \brief  Event enumeration for callback
+ */
+typedef enum {
+    gsmEventIdle = 0x00,                                    /*!< Stack went idle */
+    gsmEventDataReceived,                                   /*!< A new data received on connection */
+    gsmEventDataSent,                                       /*!< Data were sent on connection */
+    gsmEventDataSentError,                                  /*!< Data sent error */
+    gsmEventCallCLCC,                                       /*!< CLCC Call info was received with call data */
+    gsmEventCallRING,                                       /*!< RING was received on call */
+    gsmEventSMSCMTI,                                        /*!< SMS info was received */
+    gsmEventGPRSAttached,                                   /*!< GPRS has been attached */
+    gsmEventGPRSAttachError,                                /*!< Error while trying to attach GPRS */
+    gsmEventGPRSDetached                                    /*!< GPRS has been detached */
+} GSM_Event_t;
+
+/**
+ * \brief  Parameters for callback processing
+ */
+typedef struct _GSM_EventParams_t {
+    const void* CP1;                                        /*!< Constant void pointer number 1 */
+    const void* CP2;                                        /*!< Constant void pointer number 2 */
+    uint32_t UI;                                            /*!< Unsigned integer value */
+} GSM_EventParams_t;
+
+/**
+ * \brief  Callback function prototype
+ */
+typedef int (*GSM_EventCallback_t)(GSM_Event_t, GSM_EventParams_t*);
+
+/**
  * \brief  GSM structure
  */
 typedef struct _GSM_t {
@@ -415,10 +446,17 @@ typedef struct _GSM_t {
             
             uint8_t HTTP_Read_Data:1;                       /*!< Set to 1 when reading data from HTTP response */
             
+            uint8_t Call_GPRS_Attached:1;                   /*!< Set to 1 when GPRS is attached sucessfully */
+            uint8_t Call_GPRS_Attach_Error:1;               /*!< Set to 1 when GPRS was not attached */
+            uint8_t Call_GPRS_Detached:1;                   /*!< Set to 1 when GPRS was detached */
+            
             uint8_t LastOperationStatus:1;
         } F;
         uint32_t Value;                                     /*!< Value containing all the flags in single memory */
     } Flags;                                                /*!< Union holding all the required flags */
+    GSM_EventCallback_t Callback;                           /*!< Callback function */
+    GSM_EventParams_t CallbackParams;                       /*!< Callback parameters */
+    
     union {
         struct {
             uint8_t RespOk:1;                               /*!< OK message response */
@@ -457,9 +495,11 @@ typedef struct _GSM_t {
  * \param  *GSM: Pointer to working \ref GSM_t structure
  * \param  *pin: Pointer to pin in string format to be used if SIM is inserted and not ready
  * \param  baudrate: Baudrate for UART communication
+ * \param  callback: Pointer to callback function to be called on different events. 
+ *          Use NULL if you don't need callback
  * \retval Member of \ref GSM_Result_t enumeration
  */
-GSM_Result_t GSM_Init(gvol GSM_t* GSM, const char* pin, uint32_t baudrate);
+GSM_Result_t GSM_Init(gvol GSM_t* GSM, const char* pin, uint32_t baudrate, GSM_EventCallback_t callback);
 
 /**
  * \brief  Checks received data and makes action according to selected action
@@ -492,8 +532,30 @@ GSM_Result_t GSM_ProcessCallbacks(gvol GSM_t* GSM);
  * \retval Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_UpdateTime(gvol GSM_t* GSM, uint32_t millis);
+
+/**
+ * \brief  Gets last return status from stack
+ * \note   Use this function in callback function to detect returned status of last operation
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
 GSM_Result_t GSM_GetLastReturnStatus(gvol GSM_t* GSM);
+
+/**
+ * \brief  Waits for stack to be ready inside desired milliseconds
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  timeout: Timeout to wait before returning in units of milliseconds
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
 GSM_Result_t GSM_WaitReady(gvol GSM_t* GSM, uint32_t timeout);
+
+/**
+ * \brief  Delay for specific amount of time
+ * \note   When not in ASYNC or RTOS mode, this function will also update stack for amount of timeout time
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  timeout: Timeout to delay in units of milliseconds
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
 GSM_Result_t GSM_Delay(gvol GSM_t* GSM, uint32_t timeout);
 
 /**
@@ -550,6 +612,7 @@ GSM_Result_t GSM_INFO_GetRevision(gvol GSM_t* GSM, char* str, uint32_t length, u
  * \retval Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_INFO_GetSerialNumber(gvol GSM_t* GSM, char* str, uint32_t length, uint32_t blocking);
+
 /**
  * \}
  */
@@ -559,6 +622,7 @@ GSM_Result_t GSM_INFO_GetSerialNumber(gvol GSM_t* GSM, char* str, uint32_t lengt
  * \brief    PIN/PUK based functions
  * \{
  */
+ 
 /**
  * \brief  Enter PIN code for SIM card
  * \param  *GSM: Pointer to working \ref GSM_t structure
@@ -595,6 +659,7 @@ GSM_Result_t GSM_PIN_Add(gvol GSM_t* GSM, const char* new_pin, uint32_t blocking
  * \retval Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_PUK_Enter(gvol GSM_t* GSM, const char* puk, const char* new_pin, uint32_t blocking);
+
 /**
  * \}
  */
@@ -765,6 +830,7 @@ GSM_Result_t GSM_SMS_ClearReceivedInfo(gvol GSM_t* GSM, GSM_SmsInfo_t* info, uin
  * \brief    PHONEBOOK based functions
  * \{
  */
+ 
 /**
  * \brief  Add new entry to phonebook
  * \param  *GSM: Pointer to working \ref GSM_t structure
@@ -838,6 +904,7 @@ GSM_Result_t GSM_PB_Search(gvol GSM_t* GSM, const char* search, GSM_PB_Entry_t* 
  * \brief    DATETIME based functions
  * \{
  */
+ 
 /**
  * \brief  Get current date and time from network
  * \note   Some network operators does not support this function. In this case, time when module was last reset will be returned.
@@ -847,6 +914,7 @@ GSM_Result_t GSM_PB_Search(gvol GSM_t* GSM, const char* search, GSM_PB_Entry_t* 
  * \retval Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_DATETIME_Get(gvol GSM_t* GSM, GSM_DateTime_t* datetime, uint32_t blocking);
+
 /**
  * \}
  */
@@ -1031,6 +1099,7 @@ GSM_Result_t GSM_HTTP_Read(gvol GSM_t* GSM, void* data, uint32_t btr, uint32_t* 
  *           - > 0: Data available for read operation
  */
 uint32_t GSM_HTTP_DataAvailable(gvol GSM_t* GSM, uint32_t blocking);
+
 /**
  * \}
  */
@@ -1047,60 +1116,10 @@ GSM_Result_t GSM_FTP_End(gvol GSM_t* GSM, uint32_t blocking);
 GSM_Result_t GSM_FTP_Connect(gvol GSM_t* GSM, const char* server, uint16_t port, const char* user, const char* pass, uint32_t blocking);
 GSM_Result_t GSM_FTP_UploadFile(gvol GSM_t* GSM, const char* folder, const char* file, const void* data, uint32_t length, uint32_t blocking);
 GSM_Result_t GSM_FTP_Disconnect(gvol GSM_t* GSM, uint32_t blocking);
-/**
- * \}
- */
-
-/**
- * \defgroup CALLBACK_API
- * \brief    CALLBACK based functions
- * \{
- */
-
-/**
- * \brief  Callback for IDLE state. 
- *            It is called immidiatelly when API function call is not in blocking state and stack become IDLE
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \retval None
- */
-void GSM_Callback_Idle(gvol GSM_t* GSM);
-
-/**
- * \brief  Callback for call info. It is call each time call status changes
- * \note   It works for incoming and outgoing calls. Check \ref GSM_CALL_GetInfo function for more informations
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \retval None
- */
-void GSM_Callback_CALL_Info(gvol GSM_t* GSM);
-
-/**
- * \brief  Callback for call ring. It is call each time "RING" is received from module
- * \note   It works for incoming calls.
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \retval None
- */
-void GSM_Callback_CALL_Ring(gvol GSM_t* GSM);
-
-/**
- * \brief  Callback for SMS info. It is call each time when new SMS arrives
- * \note   Check \ref GSM_SMS_GetReceivedInfo function for more informations about getting SMS data
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \retval None
- */
-void GSM_Callback_SMS_Info(gvol GSM_t* GSM);
-
-/**
- * \brief  Callback for data received to SIM device and ready to read that data
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *Conn: Pointer to working \ref GSM_CONN_t structure about active connection
- * \retval None
- */
-void GSM_Callback_CLIENT_DataReceived(gvol GSM_t* GSM, GSM_CONN_t* Conn);
 
 /**
  * \}
  */
-
 
 /**
  * \}

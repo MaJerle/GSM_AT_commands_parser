@@ -54,49 +54,23 @@ extern "C" {
  * \brief    GSM Low-Level implementation
  * \{
  */
-    
-/**
- * \defgroup LOWLEVEL_Typedefs
- * \brief    GSM Low-Level
- * \{
- */
 
 /**
  * \brief  Low level structure for driver
  * \note   For now it has basic settings only without hardware flow control.
  */
 typedef struct _GSM_LL_t {
-    uint32_t Baudrate;			/*!< Baudrate to be used for UART */
+    uint32_t Baudrate;          /*!< Baudrate to be used for UART */
 } GSM_LL_t;
-    
-/**
- * \}
- */
     
 /* Include library */
 #include "gsm.h"
+
+#define GSM_RTS_SET         1   /*!< RTS should be set high */
+#define GSM_RTS_CLR         0   /*!< RTS should be set low */
+#define GSM_RESET_SET       1   /*!< Reset pin should be set */
+#define GSM_RESET_CLR       0   /*!< Reset pin should be cleared */
     
-/**
- * \defgroup LOWLEVEL_Macros
- * \brief    GSM Low-Level macros
- * \{
- */
-
-#define GSM_RTS_HIGH        1   /*!< RTS should be set high */
-#define GSM_RTS_CLEAR       0   /*!< RTS should be set low */
-#define GSM_RESET_HIGH		1	/*!< Reset pin should be set */
-#define GSM_RESET_LOW		0	/*!< Reset pin should be cleared */
-    
-/**
- * \}
- */
-
-/**
- * \defgroup LOWLEVEL_Functions
- * \brief    GSM Low-Level implementation
- * \{
- */
-
 /**
  * \brief  Initializes Low-Level driver to communicate with SIM module
  * \param  *LL: Pointer to \ref GSM_LL_t structure with settings
@@ -120,7 +94,7 @@ uint8_t GSM_LL_SendData(GSM_LL_t* LL, const uint8_t* data, uint16_t count);
 /**
  * \brief  Set reset pin high or low
  * \param  *LL: Pointer to \ref GSM_LL_t structure with settings
- * \param  state: State for reset pin, it can be high or low. Check \ref GSM_RESET_HIGH and \ref GSM_RESET_LOW
+ * \param  state: State for reset pin, it can be high or low. Check \ref GSM_RESET_SET and \ref GSM_RESET_CLR
  * \retval Success status:
  *            - 0: Successful
  *            - > 0: Error
@@ -130,15 +104,12 @@ uint8_t GSM_LL_SetReset(GSM_LL_t* LL, uint8_t state);
 /**
  * \brief  Initializes Low-Level driver to communicate with SIM module
  * \param  *LL: Pointer to \ref GSM_LL_t structure with settings
+ * \param  state: State for reset pin, it can be high or low. Check \ref GSM_RTS_SET and \ref GSM_RTS_CLR
  * \retval Success status:
  *            - 0: Successful
  *            - > 0: Error
  */
 uint8_t GSM_LL_SetRTS(GSM_LL_t* LL, uint8_t state);
-    
-/**
- * \}
- */
 
 /**
  * \}

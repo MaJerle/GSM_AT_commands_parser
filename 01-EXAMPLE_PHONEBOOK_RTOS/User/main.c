@@ -71,6 +71,9 @@ osThreadDef(GSM_Main, GSM_Main_Thread, osPriorityNormal, 0, configMINIMAL_STACK_
 
 osThreadId GSM_Update_ThreadId, GSM_Main_ThreadId;
 
+/* GSM callback declaration */
+int GSM_Callback(GSM_Event_t evt, GSM_EventParams_t* params);
+
 int main(void) {    
     TM_RCC_InitSystem();                                    /* Init system */
     HAL_Init();                                             /* Init HAL layer */
@@ -119,7 +122,7 @@ void GSM_Update_Thread(void const* params) {
  */
 void GSM_Main_Thread(void const* params) {
     /* Init GSM library with PIN code */
-    printf("GSM Init status: %d\r\n", GSM_Init(&GSM, GSM_PIN, 115200));
+    printf("GSM Init status: %d\r\n", GSM_Init(&GSM, GSM_PIN, 115200, GSM_Callback));
     
     /* Add new entry to phonebook */
     if ((gsmRes = GSM_PB_Add(&GSM, "Name", "0123456789", 1)) == gsmOK) {
@@ -171,8 +174,19 @@ void GSM_Main_Thread(void const* params) {
 }
 
 /***********************************************/
-/**               Library callbacks           **/
+/**               Library callback            **/
 /***********************************************/
+int GSM_Callback(GSM_Event_t evt, GSM_EventParams_t* params) {
+    switch (evt) {                              /* Check events */
+        case gsmEventIdle:
+            printf("Stack is IDLE!\r\n");
+            break;
+        default:
+            break;
+    }
+    
+    return 0;
+}
 
 /* printf handler */
 int fputc(int ch, FILE* fil) {

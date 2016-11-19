@@ -65,11 +65,6 @@ extern "C" {
  * 
  * In this case, mutex implementation is required to allow multiple threads communicate with GSM library.
  */
-/**
- * \defgroup SYSCALL_Functions
- * \brief    GSM Syscalls functions
- * \{
- */
 
 /**
  * \brief  Creates a synchronization object
@@ -106,10 +101,6 @@ uint8_t GSM_SYS_Request(GSM_RTOS_SYNC_t* Sync);
  *            - > 0: Error
  */
 uint8_t GSM_SYS_Release(GSM_RTOS_SYNC_t* Sync);
-    
-/**
- * \}
- */
 
 /**
  * \}
