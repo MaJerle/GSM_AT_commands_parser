@@ -3,7 +3,7 @@
  * \email   tilen@majerle.eu
  * \website https://majerle.eu/projects/gsm-at-commands-parser-for-embedded-systems
  * \license MIT
- * \version 0.2.1
+ * \version 0.3.0
  * \brief   GSM Library
  *	
 \verbatim
@@ -33,7 +33,7 @@
 \endverbatim
  */
 #ifndef GSM_H
-#define GSM_H 021
+#define GSM_H 030
 
 /* C++ detection */
 #ifdef __cplusplus
