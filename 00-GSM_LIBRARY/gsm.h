@@ -559,6 +559,14 @@ GSM_Result_t GSM_WaitReady(gvol GSM_t* GSM, uint32_t timeout);
 GSM_Result_t GSM_Delay(gvol GSM_t* GSM, uint32_t timeout);
 
 /**
+ * \brief  Checks if stack is ready
+ * \note   This checks only flag in library. When working with RTOS, this function may not return actual value
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
+GSM_Result_t GSM_IsReady(gvol GSM_t* GSM);
+
+/**
  * \brief  Data were received from UART and should be transfered to GSM stack
  * \note   This function should be called from UART RX interrupt for further processing
  * \param  *ch: Pointer to character or array of characters

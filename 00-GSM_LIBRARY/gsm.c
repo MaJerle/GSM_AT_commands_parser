@@ -76,6 +76,8 @@ typedef struct {
 #define CMD_GEN_CALL_CLCC                   ((uint16_t)0x0003)
 #define CMD_GEN_FACTORY_SETTINGS            ((uint16_t)0x0004)
 #define CMD_GEN_AT                          ((uint16_t)0x0005)
+#define CMD_GEN_ATE0                        ((uint16_t)0x0006)
+#define CMD_GEN_ATE1                        ((uint16_t)0x0007)
 #define CMD_IS_ACTIVE_GENERAL(p)            ((p)->ActiveCmd >= 0x0001 && (p)->ActiveCmd < 0x0100)
 
 #define CMD_PIN                             ((uint16_t)0x0101)
@@ -226,6 +228,7 @@ typedef struct {
 #define __RETURN(GSM, val)                      do { (GSM)->RetVal = (val); return (val); } while (0)
 #define __RETURN_BLOCKING(GSM, b, mt) do {      \
     GSM_Result_t res;                           \
+    (GSM)->ActiveCmdTimeout = mt;               \
     if (!(b)) {                                 \
         (GSM)->Flags.F.IsBlocking = 0;          \
         __RETURN(GSM, gsmOK);                   \
@@ -619,6 +622,9 @@ void ParseReceived(gvol GSM_t* GSM, Received_t* Received) {
     if (!is_ok) {
         if (*str == '+') {
             is_error = strncmp(str, "+CME ERROR:", 11) == 0;/* Check if error received */
+            if (!is_error) {
+                is_error = strncmp(str, "+CMS ERROR:", 11) == 0;/* Check if error received */
+            }
         }
         if (!is_error) {
             is_error = strcmp(str, GSM_ERROR) == 0;         /* Check if error received */
@@ -860,6 +866,28 @@ PT_THREAD(PT_Thread_GEN(struct pt* pt, gvol GSM_t* GSM)) {
         UART_SEND_STR(FROMMEM("AT+CLCC=1"));                /* Auto notify about new calls */
         UART_SEND_STR(GSM_CRLF);
         StartCommand(GSM, CMD_GEN_CALL_CLCC, NULL);         /* Start command */
+        
+        PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
+                            GSM->Events.F.RespError);       /* Wait for response */
+        
+        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
+        __IDLE(GSM);
+    } else if (GSM->ActiveCmd == CMD_GEN_ATE0) {            /* Disable command echo */
+        __RST_EVENTS_RESP(GSM);                             /* Reset events */
+        UART_SEND_STR(FROMMEM("ATE0"));                     /* Send command */
+        UART_SEND_STR(GSM_CRLF);
+        StartCommand(GSM, CMD_GEN_ATE0, NULL);              /* Start command */
+        
+        PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
+                            GSM->Events.F.RespError);       /* Wait for response */
+        
+        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
+        __IDLE(GSM);
+    } else if (GSM->ActiveCmd == CMD_GEN_ATE1) {            /* Enable command echo */
+        __RST_EVENTS_RESP(GSM);                             /* Reset events */
+        UART_SEND_STR(FROMMEM("ATE1"));                     /* Send command */
+        UART_SEND_STR(GSM_CRLF);
+        StartCommand(GSM, CMD_GEN_ATE1, NULL);              /* Start command */
         
         PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
                             GSM->Events.F.RespError);       /* Wait for response */
@@ -1162,8 +1190,10 @@ PT_THREAD(PT_Thread_SMS(struct pt* pt, gvol GSM_t* GSM)) {
             
             if (GSM->Events.F.RespOk) {                     /* Here, we should have SMS memoy number for sent SMS */
                 GSM->Flags.F.SMS_SendOk = 1;                /* SMS sent OK */
+                GSM->ActiveResult = gsmOK;
             } else if (GSM->Events.F.RespError) {           /* Error sending */
                 GSM->Flags.F.SMS_SendError = 1;             /* SMS was not send */
+                GSM->ActiveResult = gsmERROR;
             }                                               /* Go IDLE mode */
         } else if (GSM->Events.F.RespError) {
             GSM->Flags.F.SMS_SendError = 1;                 /* SMS error flag */
@@ -2018,7 +2048,7 @@ GSM_Result_t GSM_Init(gvol GSM_t* G, const char* pin, uint32_t Baudrate, GSM_Eve
     
     memset((void *)GSM, 0x00, sizeof(GSM_t));               /* Clear structure first */
     
-    
+    /* Set callback */
     GSM->Callback = callback;                               /* Set event callback */
     if (!GSM->Callback) {
         GSM->Callback = GSM_CallbackDefault;                /* Set default callback function */
@@ -2091,6 +2121,15 @@ GSM_Result_t GSM_Init(gvol GSM_t* G, const char* pin, uint32_t Baudrate, GSM_Eve
             break;
         }
         GSM_Delay(GSM, 100);
+    }     
+    while (i--) {
+        Pointers.CPtr1 = pin;
+        __ACTIVE_CMD(GSM, CMD_GEN_ATE1);                    /* Disable ECHO */
+        GSM_WaitReady(GSM, 1000);
+        if (GSM->ActiveResult == gsmOK) {
+            break;
+        }
+        GSM_Delay(GSM, 100);
     }    
     GSM->Flags.F.IsBlocking = 0;                            /* Reset blocking calls */
     __IDLE(GSM);                                            /* Process IDLE */
@@ -2119,13 +2158,17 @@ GSM_Result_t GSM_Delay(gvol GSM_t* GSM, uint32_t timeout) {
     __RETURN(GSM, gsmOK);
 }
 
+GSM_Result_t GSM_IsReady(gvol GSM_t* GSM) {
+    return GSM->ActiveCmd != CMD_IDLE ? gsmERROR : gsmOK;
+}
+
 GSM_Result_t GSM_Update(gvol GSM_t* GSM) {
     char ch;
     static char prev1_ch = 0x00, prev2_ch = 0x00;
     BUFFER_t* Buff = &Buffer;
     uint16_t processedCount = 500;
     
-    if (GSM->ActiveCmd != CMD_IDLE && GSM->Time - GSM->ActiveCmdStart > GSM->ActiveCmdTimeout) {
+    if (GSM->ActiveCmd != CMD_IDLE && (GSM->Time - GSM->ActiveCmdStart) > GSM->ActiveCmdTimeout) {
         GSM->Events.F.RespError = 1;                        /* Set active error and process */
     }
     
@@ -2275,7 +2318,7 @@ uint32_t GSM_DataReceived(uint8_t* ch, uint32_t count) {
 /***                                INFO API                                 **/
 /******************************************************************************/
 GSM_Result_t GSM_INFO_GetManufacturer(gvol GSM_t* GSM, char* str, uint32_t length, uint32_t blocking) {
-    __CHECK_INPUTS(str != NULL);                            /* Check valid data */
+    __CHECK_INPUTS(str);                                    /* Check valid data */
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_INFO_CGMI);                       /* Set active command */
     
@@ -2285,7 +2328,7 @@ GSM_Result_t GSM_INFO_GetManufacturer(gvol GSM_t* GSM, char* str, uint32_t lengt
 }
 
 GSM_Result_t GSM_INFO_GetModel(gvol GSM_t* GSM, char* str, uint32_t length, uint32_t blocking) {
-    __CHECK_INPUTS(str != NULL);                            /* Check valid data */
+    __CHECK_INPUTS(str);                                    /* Check valid data */
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_INFO_CGMM);                       /* Set active command */
     
@@ -2295,7 +2338,7 @@ GSM_Result_t GSM_INFO_GetModel(gvol GSM_t* GSM, char* str, uint32_t length, uint
 }
 
 GSM_Result_t GSM_INFO_GetRevision(gvol GSM_t* GSM, char* str, uint32_t length, uint32_t blocking) {
-    __CHECK_INPUTS(str != NULL);                            /* Check valid data */
+    __CHECK_INPUTS(str);                                    /* Check valid data */
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_INFO_CGMR);                       /* Set active command */
     
@@ -2305,7 +2348,7 @@ GSM_Result_t GSM_INFO_GetRevision(gvol GSM_t* GSM, char* str, uint32_t length, u
 }
 
 GSM_Result_t GSM_INFO_GetSerialNumber(gvol GSM_t* GSM, char* str, uint32_t length, uint32_t blocking) {
-    __CHECK_INPUTS(str != NULL);                            /* Check valid data */
+    __CHECK_INPUTS(str);                                    /* Check valid data */
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_INFO_CGSN);                       /* Set active command */
     
@@ -2318,7 +2361,7 @@ GSM_Result_t GSM_INFO_GetSerialNumber(gvol GSM_t* GSM, char* str, uint32_t lengt
 /***                               PIN/PUK API                               **/
 /******************************************************************************/
 GSM_Result_t GSM_PIN_Enter(gvol GSM_t* GSM, const char* pin, uint32_t blocking) {
-    __CHECK_INPUTS(pin != NULL);                            /* Check valid data */
+    __CHECK_INPUTS(pin);                                    /* Check valid data */
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_PIN);                             /* Set active command */
     
@@ -2328,7 +2371,7 @@ GSM_Result_t GSM_PIN_Enter(gvol GSM_t* GSM, const char* pin, uint32_t blocking) 
 }
 
 GSM_Result_t GSM_PIN_Remove(gvol GSM_t* GSM, const char* current_pin, uint32_t blocking) {
-    __CHECK_INPUTS(current_pin != NULL);                    /* Check valid data */
+    __CHECK_INPUTS(current_pin);                            /* Check valid data */
     __CHECK_BUSY(GSM);                                      /* Check busy flag */
     __ACTIVE_CMD(GSM, CMD_PIN_REMOVE);                      /* Set active command */
     
@@ -2338,7 +2381,7 @@ GSM_Result_t GSM_PIN_Remove(gvol GSM_t* GSM, const char* current_pin, uint32_t b
 }
 
 GSM_Result_t GSM_PIN_Add(gvol GSM_t* GSM, const char* new_pin, uint32_t blocking) {
-    __CHECK_INPUTS(new_pin != NULL);                        /* Check valid data */
+    __CHECK_INPUTS(new_pin);                                /* Check valid data */
     __CHECK_BUSY(GSM);                                      /* Check busy flag */
     __ACTIVE_CMD(GSM, CMD_PIN_ADD);                         /* Set active command */
     
@@ -2348,7 +2391,7 @@ GSM_Result_t GSM_PIN_Add(gvol GSM_t* GSM, const char* new_pin, uint32_t blocking
 }
 
 GSM_Result_t GSM_PUK_Enter(gvol GSM_t* GSM, const char* puk, const char* new_pin, uint32_t blocking) {
-    __CHECK_INPUTS(puk != NULL && new_pin != NULL);         /* Check valid data */
+    __CHECK_INPUTS(puk && new_pin);                         /* Check valid data */
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_PUK);                             /* Set active command */
     
@@ -2362,7 +2405,7 @@ GSM_Result_t GSM_PUK_Enter(gvol GSM_t* GSM, const char* puk, const char* new_pin
 /***                                CALL API                                 **/
 /******************************************************************************/
 GSM_Result_t GSM_CALL_Voice(gvol GSM_t* GSM, const char* number, uint32_t blocking) {
-    __CHECK_INPUTS(number != NULL);                         /* Check valid data */
+    __CHECK_INPUTS(number);                                 /* Check valid data */
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_CALL_VOICE);                      /* Set active command */
     
@@ -2392,7 +2435,7 @@ GSM_Result_t GSM_CALL_DataFromSIMPosition(gvol GSM_t* GSM, uint16_t pos, uint32_
 }
 
 GSM_Result_t GSM_CALL_Data(gvol GSM_t* GSM, const char* number, uint32_t blocking) {
-    __CHECK_INPUTS(number != NULL);                         /* Check valid data */
+    __CHECK_INPUTS(number);                                 /* Check valid data */
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_CALL_DATA);                       /* Set active command */
     
@@ -2427,8 +2470,8 @@ GSM_Result_t GSM_CALL_ClearInfo(gvol GSM_t* GSM, GSM_CallInfo_t* info, uint32_t 
 /***                                 SMS API                                 **/
 /******************************************************************************/
 GSM_Result_t GSM_SMS_Send(gvol GSM_t* GSM, const char* number, const char* data, uint32_t blocking) {
-    __CHECK_INPUTS(number != NULL && 
-        data != NULL && strlen(data) <= GSM_SMS_MAX_LENGTH);/* Check valid data */
+    __CHECK_INPUTS(number && data && 
+                    strlen(data) <= GSM_SMS_MAX_LENGTH);    /* Check valid data */
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_SMS_SEND);                        /* Set active command */
     
@@ -2439,7 +2482,7 @@ GSM_Result_t GSM_SMS_Send(gvol GSM_t* GSM, const char* number, const char* data,
 }
 
 GSM_Result_t GSM_SMS_Read(gvol GSM_t* GSM, uint16_t position, GSM_SMS_Entry_t* SMS, uint32_t blocking) {
-    __CHECK_INPUTS(SMS != NULL);                            /* Check valid data */
+    __CHECK_INPUTS(SMS);                                    /* Check valid data */
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_SMS_READ);                        /* Set active command */
     
@@ -2450,8 +2493,7 @@ GSM_Result_t GSM_SMS_Read(gvol GSM_t* GSM, uint16_t position, GSM_SMS_Entry_t* S
 }
 
 GSM_Result_t GSM_SMS_List(gvol GSM_t* GSM, GSM_SMS_ReadType_t type, GSM_SMS_Entry_t* entries, uint16_t entries_count, uint16_t* entries_read, uint32_t blocking) {
-    __CHECK_INPUTS(entries != NULL 
-                        && entries_read != NULL);           /* Check valid data */
+    __CHECK_INPUTS(entries && entries_read);                /* Check valid data */
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_SMS_LIST);                        /* Set active command */
     
@@ -2531,7 +2573,7 @@ GSM_Result_t GSM_SMS_ClearReceivedInfo(gvol GSM_t* GSM, GSM_SmsInfo_t* info, uin
 /***                              PHONEBOOK API                              **/
 /******************************************************************************/
 GSM_Result_t GSM_PB_Add(gvol GSM_t* GSM, const char* name, const char* number, uint32_t blocking) {
-    __CHECK_INPUTS(name != NULL && number != NULL);         /* Check valid data */
+    __CHECK_INPUTS(name && number);                         /* Check valid data */
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_PB_ADD);                          /* Set active command */
     
@@ -2542,7 +2584,7 @@ GSM_Result_t GSM_PB_Add(gvol GSM_t* GSM, const char* name, const char* number, u
 }
 
 GSM_Result_t GSM_PB_Edit(gvol GSM_t* GSM, uint32_t index, const char* name, const char* number, uint32_t blocking) {
-    __CHECK_INPUTS(index && name != NULL && number != NULL);/* Check valid data */
+    __CHECK_INPUTS(index && name && number);                /* Check valid data */
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_PB_EDIT);                         /* Set active command */
     
@@ -2564,7 +2606,7 @@ GSM_Result_t GSM_PB_Delete(gvol GSM_t* GSM, uint32_t index, uint32_t blocking) {
 }
 
 GSM_Result_t GSM_PB_Get(gvol GSM_t* GSM, uint32_t index, GSM_PB_Entry_t* entry, uint32_t blocking) {
-    __CHECK_INPUTS(index && entry != NULL);                 /* Check valid data */
+    __CHECK_INPUTS(index && entry);                         /* Check valid data */
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_PB_GET);                          /* Set active command */
     
@@ -2646,7 +2688,7 @@ GSM_Result_t GSM_GPRS_Detach(gvol GSM_t* GSM, uint32_t blocking) {
 GSM_Result_t GSM_CONN_Start(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, 
     GSM_CONN_Type_t type, const char* host, uint16_t port, uint32_t blocking) {
         
-    __CHECK_INPUTS(conn != NULL && host != NULL);           /* Check valid data */
+    __CHECK_INPUTS(conn && host);                           /* Check valid data */
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_GPRS_CIPSTART);                   /* Set active command */
      
@@ -2736,7 +2778,7 @@ GSM_Result_t GSM_HTTP_End(gvol GSM_t* GSM, uint32_t blocking) {
 }
 
 GSM_Result_t GSM_HTTP_SetData(gvol GSM_t* GSM, const void* data, uint32_t btw, uint32_t blocking) {
-    __CHECK_INPUTS(data != NULL && btw);                    /* Check valid data */
+    __CHECK_INPUTS(data && btw);                            /* Check valid data */
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_GPRS_HTTPSEND);                   /* Set active command */
     
@@ -2747,7 +2789,7 @@ GSM_Result_t GSM_HTTP_SetData(gvol GSM_t* GSM, const void* data, uint32_t btw, u
 }
 
 GSM_Result_t GSM_HTTP_SetContent(gvol GSM_t* GSM, const char* content, uint32_t blocking) {
-    __CHECK_INPUTS(content != NULL);                        /* Check valid data */
+    __CHECK_INPUTS(content);                                /* Check valid data */
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_GPRS_HTTPCONTENT);                /* Set active command */
     
@@ -2757,7 +2799,7 @@ GSM_Result_t GSM_HTTP_SetContent(gvol GSM_t* GSM, const char* content, uint32_t 
 }
 
 GSM_Result_t GSM_HTTP_Execute(gvol GSM_t* GSM, const char* url, GSM_HTTP_Method_t method, uint32_t blocking) {
-    __CHECK_INPUTS(url != NULL);                            /* Check valid data */
+    __CHECK_INPUTS(url);                                    /* Check valid data */
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_GPRS_HTTPEXECUTE);                /* Set active command */
     
@@ -2775,7 +2817,7 @@ GSM_Result_t GSM_HTTP_Execute(gvol GSM_t* GSM, const char* url, GSM_HTTP_Method_
 }
 
 GSM_Result_t GSM_HTTP_Read(gvol GSM_t* GSM, void* data, uint32_t btr, uint32_t* br, uint32_t blocking) {
-    __CHECK_INPUTS(data != NULL && btr);                    /* Check valid data */
+    __CHECK_INPUTS(data && btr);                            /* Check valid data */
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_GPRS_HTTPREAD);                   /* Set active command */
     
