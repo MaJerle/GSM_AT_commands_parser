@@ -155,7 +155,7 @@ int main(void) {
     /* Init GSM */
     printf("GSM Init status: %d\r\n", GSM_Init(&GSM, GSM_PIN, 115200, GSM_Callback));
     
-	while (1) {
+    while (1) {
         GSM_Update(&GSM);                                   /* Process GSM update */
         
         if (SMS_Info) {                                     /* Anything works? */
@@ -176,7 +176,7 @@ int main(void) {
                 printf("Error trying to mass delete: %d\r\n", gsmRes);
             }
         }
-	}
+    }
 }
 
 /* 1ms handler */
