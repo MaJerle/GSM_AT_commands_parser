@@ -139,7 +139,13 @@ typedef struct {
 #define CMD_GPRS_HTTPCONTENT                ((uint16_t)0x0708)
 #define CMD_GPRS_FTPBEGIN                   ((uint16_t)0x0709)
 #define CMD_GPRS_FTPEND                     ((uint16_t)0x070A)
-#define CMD_GPRS_FTPCONNECT                 ((uint16_t)0x070B)
+#define CMD_GPRS_FTPAUTH                    ((uint16_t)0x070B)
+#define CMD_GPRS_FTPDOWN                    ((uint16_t)0x070C)
+#define CMD_GPRS_FTPDOWNBEGIN               ((uint16_t)0x070D)
+#define CMD_GPRS_FTPDOWNEND                 ((uint16_t)0x070E)
+#define CMD_GPRS_FTPUP                      ((uint16_t)0x070F)
+#define CMD_GPRS_FTPUPBEGIN                 ((uint16_t)0x0710)
+#define CMD_GPRS_FTPUPEND                   ((uint16_t)0x0711)
 
 #define CMD_GPRS_CIPSHUT                    ((uint16_t)0x0720)
 #define CMD_GPRS_CGATT                      ((uint16_t)0x0721)
@@ -160,14 +166,21 @@ typedef struct {
 #define CMD_GPRS_HTTPACTION                 ((uint16_t)0x0730)
 #define CMD_GPRS_HTTPREAD                   ((uint16_t)0x0731)
 #define CMD_GPRS_HTTPTERM                   ((uint16_t)0x0732)
-#define CMD_GPRS_FTPCID                     ((uint16_t)0x0733)
-#define CMD_GPRS_FTPSERV                    ((uint16_t)0x0734)
-#define CMD_GPRS_FTPUN                      ((uint16_t)0x0735)
-#define CMD_GPRS_FTPPW                      ((uint16_t)0x0736)
-#define CMD_GPRS_FTPPUTNAME                 ((uint16_t)0x0737)
-#define CMD_GPRS_FTPPUTPATH                 ((uint16_t)0x0738)
-#define CMD_GPRS_FTPPORT                    ((uint16_t)0x0739)
-#define CMD_GPRS_CREG                       ((uint16_t)0x073A)
+#define CMD_GPRS_CREG                       ((uint16_t)0x0733)
+#define CMD_GPRS_FTPCID                     ((uint16_t)0x0734)
+#define CMD_GPRS_FTPSERV                    ((uint16_t)0x0735)
+#define CMD_GPRS_FTPPORT                    ((uint16_t)0x0736)
+#define CMD_GPRS_FTPUN                      ((uint16_t)0x0737)
+#define CMD_GPRS_FTPPW                      ((uint16_t)0x0738)
+#define CMD_GPRS_FTPPUTNAME                 ((uint16_t)0x0739)
+#define CMD_GPRS_FTPPUTPATH                 ((uint16_t)0x073A)
+#define CMD_GPRS_FTPPUT                     ((uint16_t)0x073B)
+#define CMD_GPRS_FTPGETPATH                 ((uint16_t)0x073C)
+#define CMD_GPRS_FTPGETNAME                 ((uint16_t)0x073D)
+#define CMD_GPRS_FTPGET                     ((uint16_t)0x073E)
+#define CMD_GPRS_FTPPUTOPT                  ((uint16_t)0x073F)
+#define CMD_GPRS_FTPQUIT                    ((uint16_t)0x0740)
+#define CMD_GPRS_FTPMODE                    ((uint16_t)0x0741)
 #define CMD_IS_ACTIVE_GPRS(p)               ((p)->ActiveCmd >= 0x0700 && (p)->ActiveCmd < 0x0800)
 
 #define __DEBUG(fmt, ...)                   printf(fmt, ##__VA_ARGS__)
@@ -587,6 +600,7 @@ void ParseCIPRXGET(gvol GSM_t* GSM, GSM_CONN_t* conn, char* str) {
         conn->BytesRemaining = ParseNumber(str, NULL);      /* Bytes remaining in buffer */
     }
 }
+
 /* Parse +HTTPACTION statement */
 gstatic
 void ParseHTTPACTION(gvol GSM_t* GSM, gvol GSM_HTTP_t* http, char* str) {
@@ -597,6 +611,52 @@ void ParseHTTPACTION(gvol GSM_t* GSM, gvol GSM_HTTP_t* http, char* str) {
     http->Code = ParseNumber(str, &cnt);                    /* HTTP code response */
     str += cnt + 1;
     http->BytesReceived = ParseNumber(str, NULL);           /* Parse number of bytes to read */
+}
+
+/* Parse +FTPPUT statement */
+gstatic
+void ParseFTPPUT(gvol GSM_t* GSM, gvol GSM_FTP_t* ftp, char* str) {
+    uint8_t cnt;
+    
+    ftp->Mode = ParseNumber(str, &cnt);                     /* Parse number for method */
+    str += cnt + 1;
+    if (ftp->Mode == 1) {                                   /* Opening FTP session */
+        ftp->ErrorCode = ParseNumber(str, &cnt);            /* Get error code */
+        str += cnt + 1;
+        
+        if (ftp->ErrorCode == 1) {                          /* When second parameter is 1 */
+            ftp->MaxBytesToPut = ParseNumber(str, &cnt);    /* Parse number of bytes we can upload at a time */
+            str += cnt;
+        }
+    } else if (ftp->Mode == 2) {                            /* Uploaidng FTP data */
+        
+    }
+}
+
+/* Parse +FTPGET statement */
+gstatic
+void ParseFTPGET(gvol GSM_t* GSM, gvol GSM_FTP_t* ftp, char* str) {
+    uint8_t cnt;
+    
+    ftp->Mode = ParseNumber(str, &cnt);                     /* Parse number for method */
+    str += cnt + 1;
+    if (ftp->Mode == 1) {                                   /* Opening FTP session */
+        ftp->ErrorCode = ParseNumber(str, &cnt);            /* Get error code */
+        str += cnt + 1;
+        
+        if (ftp->ErrorCode == 0) {
+            ftp->Flags.F.DownloadActive = 0;                /* No more data available */
+        } else if (ftp->ErrorCode == 1) {
+            ftp->Flags.F.DataAvailable = 1;                 /* Data available to read */
+        }
+    } else if (ftp->Mode == 2) {                            /* Reading FTP data */
+        ftp->BytesReadRemaining = ParseNumber(str, &cnt);   /* Parse number of bytes we can read in this call */
+        str += cnt + 1;
+        
+        if (ftp->BytesReadRemaining == 0) {                 /* Check if anything to read */
+            ftp->Flags.F.DataAvailable = 0;
+        }
+    }
 }
 
 /* Processes received string from module */
@@ -661,10 +721,10 @@ void ParseReceived(gvol GSM_t* GSM, Received_t* Received) {
     }
     
     /* On startup process */
-    if (strcmp(str, "Call Ready\r\n") == 0) {
+    if (strcmp(str, FROMMEM("Call Ready\r\n")) == 0) {
         GSM->Events.F.RespCallReady = 1;
     }
-    if (strcmp(str, "SMS Ready\r\n") == 0) {
+    if (strcmp(str, FROMMEM("SMS Ready\r\n")) == 0) {
         GSM->Events.F.RespSMSReady = 1;
     }
     
@@ -688,6 +748,15 @@ void ParseReceived(gvol GSM_t* GSM, Received_t* Received) {
         } else if (strcmp(&str[1], FROMMEM(", SEND FAIL\r\n")) == 0) {  /* n, SEND FAIL received */
             GSM->Events.F.RespSendFail = 1;
             is_error = 1;
+        }
+    }
+    
+    /* Connection closed by remote device */
+    if (strcmp(&str[1], FROMMEM(", CLOSED\r\n")) == 0) {    /* n, CLOSED received */
+        uint8_t num = CHARTONUM(str[0]);                    /* Get connection number */
+        if (GSM->Conns[num]) {
+            GSM->Conns[num]->Flags.F.Active = 0;            /* Connection is not active anymore */
+            GSM->Conns[num]->Flags.F.CallConnClosed = 1;    /* Call connection closed */
         }
     }
     
@@ -773,7 +842,23 @@ void ParseReceived(gvol GSM_t* GSM, Received_t* Received) {
             GSM->HTTP.BytesRead = 0;                        /* Reset read bytes */
             GSM->HTTP.BytesReadRemaining = ParseNumber(&str[11], NULL); /* Get number of bytes we have to read in this request */
             GSM->Flags.F.HTTP_Read_Data = 1;                /* HTTP read data */
-        } 
+        } else if (strncmp(str, FROMMEM("+FTPGET:"), 8) == 0) { /* Parse FTPGET */
+            ParseFTPGET(GSM, (GSM_FTP_t *)&GSM->FTP, &str[9]);  /* Parse FTP GET statement */
+            GSM->Events.F.RespFtpGet = 1;                   /* FTP GET was received */
+            
+            if (GSM->FTP.Mode == 2) {                       /* Read procedure */
+                GSM->FTP.BytesRead = 0;                     /* Reset number of read bytes */
+                if (GSM->FTP.BytesReadRemaining > 0) {      /* Check if we should read anything */
+                    GSM->Flags.F.FTP_Read_Data = 1;         /* Activate flag to read data */
+                }
+            }
+        } else if (strncmp(str, FROMMEM("+FTPPUT:"), 8) == 0) { /* Parse FTPPUT */
+            ParseFTPPUT(GSM, (GSM_FTP_t *)&GSM->FTP, &str[9]);  /* Parse FTPPUT statement */
+            GSM->Events.F.RespFtpPut = 1;                   /* FTP PUT was received */
+            if (GSM->FTP.Mode == 2) {                       /* +FTPPUT:2,.. received */
+                GSM->Events.F.RespFtpUploadReady = 1;       /* Upload is ready to proceed */
+            }
+        }
     }
     
     if (GSM->ActiveCmd == CMD_GPRS_HTTPDATA && strncmp(str, "DOWNLOAD", 8) == 0) {  /* Download received? */
@@ -1923,6 +2008,7 @@ cmd_gprs_httpexecute_clean:                                 /* Clean everything 
     } else if (GSM->ActiveCmd == CMD_GPRS_FTPBEGIN) {       /* Start FTP session */
         __CMD_SAVE(GSM);                                    /* Save command */
         
+        /**** Enable FTP profile ****/
         __RST_EVENTS_RESP(GSM);                             /* Reset events */
         UART_SEND_STR(FROMMEM("AT+FTPCID=1"));              /* Send command */
         UART_SEND_STR(GSM_CRLF);
@@ -1932,10 +2018,41 @@ cmd_gprs_httpexecute_clean:                                 /* Clean everything 
                             GSM->Events.F.RespError);       /* Wait for response */
         
         GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
+        if (GSM->ActiveResult == gsmERROR) {                /* Check for errors */
+            goto cmd_gprs_ftpbegin_clean;
+        }
+        
+        /**** Set FTP mode ****/
+        __RST_EVENTS_RESP(GSM);                             /* Reset events */
+        UART_SEND_STR(FROMMEM("AT+FTPMODE="));              /* Send command */
+        UART_SEND_STR(Pointers.UI ? FROMMEM("1") : FROMMEM("0"));
+        UART_SEND_STR(GSM_CRLF);
+        StartCommand(GSM, CMD_GPRS_FTPMODE, NULL);          /* Start command */
+        
+        PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
+                            GSM->Events.F.RespError);       /* Wait for response */
+        
+        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
+        
+cmd_gprs_ftpbegin_clean:                                    /* Clean everything */
+        __CMD_RESTORE(GSM);                                 /* Restore command */
+        __IDLE(GSM);                                        /* Go IDLE mode */
+    } else if (GSM->ActiveCmd == CMD_GPRS_FTPEND) {         /* Quit FTP session */
+        __CMD_SAVE(GSM);                                    /* Save command */
+        
+        __RST_EVENTS_RESP(GSM);                             /* Reset events */
+        UART_SEND_STR(FROMMEM("AT+FTPQUIT"));               /* Send command */
+        UART_SEND_STR(GSM_CRLF);
+        StartCommand(GSM, CMD_GPRS_FTPQUIT, NULL);          /* Start command */
+        
+        PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
+                            GSM->Events.F.RespError);       /* Wait for response */
+        
+        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
         
         __CMD_RESTORE(GSM);                                 /* Restore command */
         __IDLE(GSM);                                        /* Go IDLE mode */
-    } else if (GSM->ActiveCmd == CMD_GPRS_FTPCONNECT) {     /* Set user data */
+    } else if (GSM->ActiveCmd == CMD_GPRS_FTPAUTH) {        /* Set user data */
         __CMD_SAVE(GSM);                                    /* Save command */
         
         __RST_EVENTS_RESP(GSM);                             /* Reset events */
@@ -1950,7 +2067,7 @@ cmd_gprs_httpexecute_clean:                                 /* Clean everything 
         
         GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
         if (GSM->ActiveResult == gsmERROR) {                /* Check for errors */
-            goto cmd_gprs_ftpbegin_clean;
+            goto cmd_gprs_ftpauth_clean;
         }
         
         NumberToString(str, Pointers.UI);                   /* Convert port to string */
@@ -1965,7 +2082,7 @@ cmd_gprs_httpexecute_clean:                                 /* Clean everything 
         
         GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
         if (GSM->ActiveResult == gsmERROR) {                /* Check for errors */
-            goto cmd_gprs_ftpbegin_clean;
+            goto cmd_gprs_ftpauth_clean;
         }
         
         __RST_EVENTS_RESP(GSM);                             /* Reset events */
@@ -1980,7 +2097,7 @@ cmd_gprs_httpexecute_clean:                                 /* Clean everything 
         
         GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
         if (GSM->ActiveResult == gsmERROR) {                /* Check for errors */
-            goto cmd_gprs_ftpbegin_clean;
+            goto cmd_gprs_ftpauth_clean;
         }
         
         __RST_EVENTS_RESP(GSM);                             /* Reset events */
@@ -1995,7 +2112,270 @@ cmd_gprs_httpexecute_clean:                                 /* Clean everything 
         
         GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
 
-cmd_gprs_ftpbegin_clean:                                    /* Clean everything */
+cmd_gprs_ftpauth_clean:                                     /* Clean everything */
+        __CMD_RESTORE(GSM);                                 /* Restore command */
+        __IDLE(GSM);                                        /* Go IDLE mode */
+    } else if (GSM->ActiveCmd == CMD_GPRS_FTPDOWNBEGIN) {   /* Begin with download, set folder and file */
+        __CMD_SAVE(GSM);                                    /* Save command */
+        
+        /**** Set upload path ****/
+        __RST_EVENTS_RESP(GSM);                             /* Reset events */
+        UART_SEND_STR(FROMMEM("AT+FTPGETPATH=\""));         /* Send command */
+        UART_SEND_STR(FROMMEM(Pointers.CPtr1));
+        UART_SEND_STR(FROMMEM("\""));
+        UART_SEND_STR(GSM_CRLF);
+        StartCommand(GSM, CMD_GPRS_FTPGETPATH, NULL);       /* Start command */
+        
+        PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
+                            GSM->Events.F.RespError);       /* Wait for response */
+        
+        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
+        if (GSM->ActiveResult == gsmERROR) {                /* Check for errors */
+            goto cmd_gprs_ftpdownbegin_clean;
+        }
+        
+        /**** Set download name ****/
+        __RST_EVENTS_RESP(GSM);                             /* Reset events */
+        UART_SEND_STR(FROMMEM("AT+FTPGETNAME=\""));         /* Send command */
+        UART_SEND_STR(FROMMEM(Pointers.CPtr2));
+        UART_SEND_STR(FROMMEM("\""));
+        UART_SEND_STR(GSM_CRLF);
+        StartCommand(GSM, CMD_GPRS_FTPGETNAME, NULL);       /* Start command */
+        
+        PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
+                            GSM->Events.F.RespError);       /* Wait for response */
+        
+        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
+        if (GSM->ActiveResult == gsmERROR) {                /* Check for errors */
+            goto cmd_gprs_ftpdownbegin_clean;
+        }
+        
+        /**** Start FTP download ****/
+        __RST_EVENTS_RESP(GSM);                             /* Reset events */
+        UART_SEND_STR(FROMMEM("AT+FTPGET=1"));              /* Send command */
+        UART_SEND_STR(GSM_CRLF);
+        StartCommand(GSM, CMD_GPRS_FTPGET, NULL);           /* Start command */
+        
+        PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
+                            GSM->Events.F.RespError);       /* Wait for response */
+        
+        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
+        if (GSM->ActiveResult == gsmERROR) {                /* Check for errors */
+            goto cmd_gprs_ftpdownbegin_clean;
+        }
+        
+        /* Wait +FTPGET response */
+        PT_WAIT_UNTIL(pt, GSM->Events.F.RespFtpGet || 
+                            GSM->Events.F.RespError);       /* Wait for response */
+        
+        /* Check response from FTP */
+        GSM->ActiveResult = gsmERROR;
+        if (GSM->Events.F.RespFtpGet) {                     /* FTPGET received */
+            if (GSM->FTP.Mode == 1) {                       /* Session opened */         
+                if (GSM->FTP.ErrorCode == 1) {              /* Data ready */
+                    GSM->FTP.Flags.F.DataAvailable = 1;     /* We have available data to read */
+                    GSM->FTP.Flags.F.DownloadActive = 1;    /* Download session is active */
+                    GSM->ActiveResult = gsmOK;
+                }
+            }
+        }
+        
+cmd_gprs_ftpdownbegin_clean:                                /* Clean everything */
+        __CMD_RESTORE(GSM);                                 /* Restore command */
+        __IDLE(GSM);                                        /* Go idle */
+    } else if (GSM->ActiveCmd == CMD_GPRS_FTPDOWN) {        /* Read FTP data */
+        __CMD_SAVE(GSM);                                    /* Save command */
+        
+        __RST_EVENTS_RESP(GSM);                             /* Reset events */
+        NumberToString(str, GSM->FTP.BytesToProcess);
+        UART_SEND_STR(FROMMEM("AT+FTPGET=2,"));             /* Send command */
+        UART_SEND_STR(FROMMEM(str));
+        UART_SEND_STR(GSM_CRLF);
+        StartCommand(GSM, CMD_GPRS_FTPGET, NULL);           /* Start command */
+        
+        PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
+                            GSM->Events.F.RespError);       /* Wait for response */
+        
+        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
+        if (GSM->ActiveResult == gsmOK) {
+            if (GSM->FTP.BytesRead != GSM->FTP.BytesToProcess || GSM->FTP.BytesRead == 0) {
+                GSM->FTP.Flags.F.DataAvailable = 0;         /* No data available anyomre */
+            }
+            GSM->FTP.BytesProcessedTotal += GSM->FTP.BytesRead; /* Increase number of total read bytes */
+            if (Pointers.Ptr1 != NULL) {
+                *(uint32_t *)Pointers.Ptr1 = GSM->FTP.BytesRead;/* Save number of read bytes for user */
+            }
+        }
+        
+        __CMD_RESTORE(GSM);                                 /* Restore command */
+        __IDLE(GSM);                                        /* Go IDLE mode */
+    } else if (GSM->ActiveCmd == CMD_GPRS_FTPDOWNEND) {     /* Finish with FTP downloading */
+        __CMD_SAVE(GSM);                                    /* Save command */
+        
+        __RST_EVENTS_RESP(GSM);                             /* Reset events */
+        UART_SEND_STR(FROMMEM("AT+FTPGET=1,0"));            /* Send command */
+        UART_SEND_STR(GSM_CRLF);
+        StartCommand(GSM, CMD_GPRS_FTPGET, NULL);           /* Start command */
+        
+        PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
+                            GSM->Events.F.RespError);       /* Wait for response */
+        
+        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
+        
+        __CMD_RESTORE(GSM);                                 /* Restore command */
+        __IDLE(GSM);                                        /* Go IDLE mode */
+    } else if (GSM->ActiveCmd == CMD_GPRS_FTPUPBEGIN) {     /* Begin with upload, set folder and file */
+        __CMD_SAVE(GSM);                                    /* Save command */
+        
+        /**** Set upload mode ****/
+        __RST_EVENTS_RESP(GSM);                             /* Reset events */
+        UART_SEND_STR(FROMMEM("AT+FTPPUTOPT=\""));          /* Send command */
+        UART_SEND_STR(FROMMEM(Pointers.CPtr3));
+        UART_SEND_STR(FROMMEM("\""));
+        UART_SEND_STR(GSM_CRLF);
+        StartCommand(GSM, CMD_GPRS_FTPPUTOPT, NULL);        /* Start command */
+        
+        PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
+                            GSM->Events.F.RespError);       /* Wait for response */
+        
+        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
+        if (GSM->ActiveResult == gsmERROR) {                /* Check for errors */
+            goto cmd_gprs_ftpupbegin_clean;
+        }
+        
+        
+        /**** Set upload path ****/
+        __RST_EVENTS_RESP(GSM);                             /* Reset events */
+        UART_SEND_STR(FROMMEM("AT+FTPPUTPATH=\""));         /* Send command */
+        UART_SEND_STR(FROMMEM(Pointers.CPtr1));
+        UART_SEND_STR(FROMMEM("\""));
+        UART_SEND_STR(GSM_CRLF);
+        StartCommand(GSM, CMD_GPRS_FTPPUTPATH, NULL);       /* Start command */
+        
+        PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
+                            GSM->Events.F.RespError);       /* Wait for response */
+        
+        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
+        if (GSM->ActiveResult == gsmERROR) {                /* Check for errors */
+            goto cmd_gprs_ftpupbegin_clean;
+        }
+        
+        /**** Set upload name ****/
+        __RST_EVENTS_RESP(GSM);                             /* Reset events */
+        UART_SEND_STR(FROMMEM("AT+FTPPUTNAME=\""));         /* Send command */
+        UART_SEND_STR(FROMMEM(Pointers.CPtr2));
+        UART_SEND_STR(FROMMEM("\""));
+        UART_SEND_STR(GSM_CRLF);
+        StartCommand(GSM, CMD_GPRS_FTPPUTNAME, NULL);       /* Start command */
+        
+        PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
+                            GSM->Events.F.RespError);       /* Wait for response */
+        
+        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
+        if (GSM->ActiveResult == gsmERROR) {                /* Check for errors */
+            goto cmd_gprs_ftpupbegin_clean;
+        }
+        
+        /**** Start FTP upload ****/
+        __RST_EVENTS_RESP(GSM);                             /* Reset events */
+        UART_SEND_STR(FROMMEM("AT+FTPPUT=1"));              /* Send command */
+        UART_SEND_STR(GSM_CRLF);
+        StartCommand(GSM, CMD_GPRS_FTPPUT, NULL);           /* Start command */
+        
+        PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
+                            GSM->Events.F.RespError);       /* Wait for response */
+        
+        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
+        if (GSM->ActiveResult == gsmERROR) {                /* Check for errors */
+            goto cmd_gprs_ftpupbegin_clean;
+        }
+        
+        /* Wait +FTPPUT response */
+        PT_WAIT_UNTIL(pt, GSM->Events.F.RespFtpPut || 
+                            GSM->Events.F.RespError);       /* Wait for response */
+        
+        /* Check response from FTP */
+        GSM->ActiveResult = gsmERROR;
+        if (GSM->Events.F.RespFtpPut) {                     /* FTPPUT received */
+            if (GSM->FTP.Mode == 1) {                       /* Session opened */         
+                if (GSM->FTP.ErrorCode == 1) {              /* Data ready */
+                    GSM->ActiveResult = gsmOK;
+                }
+            }
+        }
+        
+cmd_gprs_ftpupbegin_clean:                                  /* Clean everything */
+        __CMD_RESTORE(GSM);                                 /* Restore command */
+        __IDLE(GSM);                                        /* Go idle mode */
+    } else if (GSM->ActiveCmd == CMD_GPRS_FTPUP) {          /* Send FTP data */
+        __CMD_SAVE(GSM);                                    /* Save command */
+        
+        do {            
+            btw = GSM->FTP.BytesToProcess > GSM->FTP.MaxBytesToPut ? GSM->FTP.MaxBytesToPut : GSM->FTP.BytesToProcess;  /* Set length to send */
+            
+            NumberToString(str, btw);                       /* Get string from number */
+            __RST_EVENTS_RESP(GSM);                         /* Reset events */
+            UART_SEND_STR(FROMMEM("AT+FTPPUT=2,"));         /* Send number to GSM */
+            UART_SEND_STR(str);
+            UART_SEND_STR(GSM_CRLF);
+            StartCommand(GSM, CMD_GPRS_FTPPUT, NULL);       /* Start command */
+            
+            PT_WAIT_UNTIL(pt, GSM->Events.F.RespFtpUploadReady ||
+                                GSM->Events.F.RespError);   /* Wait for FTP upload ready or error */
+            
+            if (GSM->Events.F.RespFtpUploadReady) {         /* We received bracket */
+                __RST_EVENTS_RESP(GSM);                     /* Reset events */
+                UART_SEND((uint8_t *)GSM->FTP.Data, btw);   /* Send data */
+                
+        
+                /* Wait +FTPPUT response */
+                PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
+                                    GSM->Events.F.RespError);   /* Wait for response */
+                
+                
+                if (GSM->Events.F.RespOk) {                 /* If data were successfully sent */
+                    if (Pointers.Ptr1 != NULL) {
+                        *(uint32_t *)Pointers.Ptr1 = *(uint32_t *)Pointers.Ptr1 + btw;  /* Increase number of sent bytes */
+                    }
+                }
+                
+                PT_WAIT_UNTIL(pt, GSM->Events.F.RespFtpPut || 
+                                    GSM->Events.F.RespError);   /* Wait for another FTPPUT */
+                
+                /* Check response from FTP */
+                GSM->ActiveResult = gsmERROR;
+                if (GSM->Events.F.RespFtpPut) {             /* FTPPUT received */
+                    if (GSM->FTP.Mode == 1) {               /* Positive feedback */         
+                        if (GSM->FTP.ErrorCode == 1) {      /* Data ready */
+                            GSM->ActiveResult = gsmOK;
+                        }
+                    }
+                }
+                
+            } else if (GSM->Events.F.RespError) {
+                GSM->ActiveResult = gsmERROR;               /* Process error */
+            }
+            if (GSM->ActiveResult == gsmOK) {
+                GSM->FTP.BytesToProcess -= btw;             /* Decrease number of sent bytes */
+                Pointers.CPtr1 = (uint8_t *)Pointers.CPtr1 + btw;   /* Set new data memory location to send */
+            }
+        } while (GSM->FTP.BytesToProcess && GSM->ActiveResult == gsmOK);    /* Until anything to send */
+        
+        __CMD_RESTORE(GSM);                                 /* Restore command */
+        __IDLE(GSM);                                        /* Go IDLE mode */
+    } else if (GSM->ActiveCmd == CMD_GPRS_FTPUPEND) {       /* Finish with FTP uploading */
+        __CMD_SAVE(GSM);                                    /* Save command */
+        
+        __RST_EVENTS_RESP(GSM);                             /* Reset events */
+        UART_SEND_STR(FROMMEM("AT+FTPPUT=2,0"));            /* Send command */
+        UART_SEND_STR(GSM_CRLF);
+        StartCommand(GSM, CMD_GPRS_FTPPUT, NULL);           /* Start command */
+        
+        PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
+                            GSM->Events.F.RespError);       /* Wait for response */
+        
+        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
+        
         __CMD_RESTORE(GSM);                                 /* Restore command */
         __IDLE(GSM);                                        /* Go IDLE mode */
     }
@@ -2085,35 +2465,39 @@ GSM_Result_t GSM_Init(gvol GSM_t* G, const char* pin, uint32_t Baudrate, GSM_Eve
     /* Send initialization commands */
     GSM->Flags.F.IsBlocking = 1;                            /* Process blocking calls */
     GSM->ActiveCmdTimeout = 1000;                           /* Give 1 second timeout */
-    while (i--) {
+    while (i) {
         __ACTIVE_CMD(GSM, CMD_GEN_AT);                      /* Restore to factory settings */
         GSM_WaitReady(GSM, 1000);
         if (GSM->ActiveResult == gsmOK) {
             break;
         }
+        i--;
     }
-    while (i--) {
+    while (i) {
         __ACTIVE_CMD(GSM, CMD_GEN_FACTORY_SETTINGS);        /* Restore to factory settings */
         GSM_WaitReady(GSM, 1000);
         if (GSM->ActiveResult == gsmOK) {
             break;
         }
+        i--;
     }
-    while (i--) {
+    while (i) {
         __ACTIVE_CMD(GSM, CMD_GEN_ERROR_NUMERIC);           /* Enable numeric error codes */
         GSM_WaitReady(GSM, 1000);
         if (GSM->ActiveResult == gsmOK) {
             break;
         }
+        i--;
     }
-    while (i--) {  
+    while (i) {  
         __ACTIVE_CMD(GSM, CMD_GEN_CALL_CLCC);               /* Enable auto notification for call, +CLCC statement */
         GSM_WaitReady(GSM, 1000);
         if (GSM->ActiveResult == gsmOK) {
             break;
         }
+        i--;
     }    
-    while (i--) {
+    while (i) {
         Pointers.CPtr1 = pin;
         __ACTIVE_CMD(GSM, CMD_PIN);                         /* Enable auto notification for call, +CLCC statement */
         GSM_WaitReady(GSM, 1000);
@@ -2121,15 +2505,16 @@ GSM_Result_t GSM_Init(gvol GSM_t* G, const char* pin, uint32_t Baudrate, GSM_Eve
             break;
         }
         GSM_Delay(GSM, 100);
+        i--;
     }     
-    while (i--) {
-        Pointers.CPtr1 = pin;
+    while (i) {
         __ACTIVE_CMD(GSM, CMD_GEN_ATE0);                    /* Disable ECHO */
         GSM_WaitReady(GSM, 1000);
         if (GSM->ActiveResult == gsmOK) {
             break;
         }
         GSM_Delay(GSM, 100);
+        i--;
     }    
     GSM->Flags.F.IsBlocking = 0;                            /* Reset blocking calls */
     __IDLE(GSM);                                            /* Process IDLE */
@@ -2185,6 +2570,13 @@ GSM_Result_t GSM_Update(gvol GSM_t* GSM) {
             GSM->HTTP.BytesReadRemaining--;                 /* Decrease number of remaining bytes to read */
             if (!GSM->HTTP.BytesReadRemaining) {            /* We finished? */
                 GSM->Flags.F.HTTP_Read_Data = 0;            /* Reset flag, go back to normal parsing */
+                processedCount = 0;                         /* Stop further processing */
+            }
+        } else if (GSM->ActiveCmd == CMD_GPRS_FTPGET && GSM->Flags.F.FTP_Read_Data) {
+            GSM->FTP.Data[GSM->FTP.BytesRead++] = ch;       /* Save character */
+            GSM->FTP.BytesReadRemaining--;                  /* Decrease number of remaining bytes to read */
+            if (!GSM->FTP.BytesReadRemaining) {             /* We finished? */
+                GSM->Flags.F.FTP_Read_Data = 0;             /* Reset flag, go back to normal parsing */
                 processedCount = 0;                         /* Stop further processing */
             }
         } else if (GSM->ActiveCmd == CMD_GPRS_CIPRXGET && GSM->Flags.F.CLIENT_Read_Data) {  /* We are trying to read raw data? */
@@ -2839,9 +3231,11 @@ uint32_t GSM_HTTP_DataAvailable(gvol GSM_t* GSM, uint32_t blocking) {
 /******************************************************************************/
 /***                                 FTP API                                 **/
 /******************************************************************************/
-GSM_Result_t GSM_FTP_Begin(gvol GSM_t* GSM, uint32_t blocking) {
+GSM_Result_t GSM_FTP_Begin(gvol GSM_t* GSM, GSM_FTP_Mode_t mode, uint32_t blocking) {
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_GPRS_FTPBEGIN);                   /* Set active command */
+    
+    Pointers.UI = (uint32_t)mode;
     
     __RETURN_BLOCKING(GSM, blocking, 1000);                 /* Return with blocking support */
 }
@@ -2853,10 +3247,12 @@ GSM_Result_t GSM_FTP_End(gvol GSM_t* GSM, uint32_t blocking) {
     __RETURN_BLOCKING(GSM, blocking, 1000);                 /* Return with blocking support */
 }
 
-GSM_Result_t GSM_FTP_Connect(gvol GSM_t* GSM, const char* server, uint16_t port, const char* user, const char* pass, uint32_t blocking) {
+GSM_Result_t GSM_FTP_Authenticate(gvol GSM_t* GSM, const char* server, uint16_t port, const char* user, const char* pass, uint32_t blocking) {
     __CHECK_INPUTS(server && port && user && pass);         /* Check input values */
     __CHECK_BUSY(GSM);                                      /* Check busy status */
-    __ACTIVE_CMD(GSM, CMD_GPRS_FTPCONNECT);                 /* Set active command */
+    __ACTIVE_CMD(GSM, CMD_GPRS_FTPAUTH);                    /* Set active command */
+    
+    memset((void *)&GSM->FTP, 0x00, sizeof(GSM_FTP_t));     /* Reset structure */
     
     Pointers.CPtr1 = server;                                /* Save pointers */
     Pointers.CPtr2 = user;
@@ -2866,10 +3262,91 @@ GSM_Result_t GSM_FTP_Connect(gvol GSM_t* GSM, const char* server, uint16_t port,
     __RETURN_BLOCKING(GSM, blocking, 1000);                 /* Return with blocking support */
 }
 
-GSM_Result_t GSM_FTP_UploadFile(gvol GSM_t* GSM, const char* folder, const char* file, const void* data, uint32_t length, uint32_t blocking) {
-    return gsmERROR;
+GSM_Result_t GSM_FTP_DownloadBegin(gvol GSM_t* GSM, const char* folder, const char* file, uint32_t blocking) {
+    __CHECK_INPUTS(folder && file);                         /* Check input values */
+    __CHECK_BUSY(GSM);                                      /* Check busy status */
+    __ACTIVE_CMD(GSM, CMD_GPRS_FTPDOWNBEGIN);               /* Set active command */
+    
+    memset((void *)&GSM->FTP, 0x00, sizeof(GSM_FTP_t));     /* Reset structure */
+    
+    Pointers.CPtr1 = folder;                                /* Save pointers */
+    Pointers.CPtr2 = file;
+    
+    __RETURN_BLOCKING(GSM, blocking, 75000);                /* Return with blocking support */
 }
 
-GSM_Result_t GSM_FTP_Disconnect(gvol GSM_t* GSM, uint32_t blocking) {
-    return gsmERROR;
+GSM_Result_t GSM_FTP_Download(gvol GSM_t* GSM, void* data, uint32_t btr, uint32_t* br, uint32_t blocking) {
+    __CHECK_INPUTS(data && btr && br);                      /* Check input values */
+    __CHECK_BUSY(GSM);                                      /* Check busy status */
+    __ACTIVE_CMD(GSM, CMD_GPRS_FTPDOWN);                    /* Set active command */
+    
+    GSM->FTP.BytesToProcess = btr;
+    GSM->FTP.Data = data;
+    Pointers.Ptr1 = br;
+    if (br) {
+        *br = 0;
+    }
+    
+    __RETURN_BLOCKING(GSM, blocking, 2000);                 /* Return with blocking support */
+}
+
+GSM_Result_t GSM_FTP_DownloadActive(gvol GSM_t* GSM, uint32_t blocking) {
+    return GSM->FTP.Flags.F.DownloadActive ? gsmOK : gsmERROR;
+}
+
+GSM_Result_t GSM_FTP_DownloadAvailable(gvol GSM_t* GSM, uint32_t blocking) {
+    return GSM->FTP.Flags.F.DataAvailable ? gsmOK : gsmERROR;
+}
+
+GSM_Result_t GSM_FTP_DownloadEnd(gvol GSM_t* GSM, uint32_t blocking) {
+    __CHECK_BUSY(GSM);                                      /* Check busy status */
+    __ACTIVE_CMD(GSM, CMD_GPRS_FTPDOWNEND);                 /* Set active command */
+    
+    __RETURN_BLOCKING(GSM, blocking, 60000);                /* Return with blocking support */
+}
+
+GSM_Result_t GSM_FTP_UploadBegin(gvol GSM_t* GSM, const char* folder, const char* file, GSM_FTP_UploadMode_t mode, uint32_t blocking) {
+    __CHECK_INPUTS(folder && file);                         /* Check input values */
+    __CHECK_BUSY(GSM);                                      /* Check busy status */
+    __ACTIVE_CMD(GSM, CMD_GPRS_FTPUPBEGIN);                 /* Set active command */
+    
+    memset((void *)&GSM->FTP, 0x00, sizeof(GSM_FTP_t));     /* Reset structure */
+    
+    Pointers.CPtr1 = folder;                                /* Save pointers */
+    Pointers.CPtr2 = file;
+    switch (mode) {                                         /* Set FTP upload mode */
+        case GSM_FTP_UploadMode_Append:
+            Pointers.CPtr3 = FROMMEM("APPE");
+            break;
+        case GSM_FTP_UploadMode_StoreUnique:
+            Pointers.CPtr3 = FROMMEM("STOU");
+            break;
+        case GSM_FTP_UploadMode_Store:
+            Pointers.CPtr3 = FROMMEM("STOR");
+            break;
+    }
+    
+    __RETURN_BLOCKING(GSM, blocking, 75000);                /* Return with blocking support */
+}
+
+GSM_Result_t GSM_FTP_Upload(gvol GSM_t* GSM, const void* data, uint32_t btw, uint32_t* bw, uint32_t blocking) {
+    __CHECK_INPUTS(data && btw && bw);                      /* Check input values */
+    __CHECK_BUSY(GSM);                                      /* Check busy status */
+    __ACTIVE_CMD(GSM, CMD_GPRS_FTPUP);                      /* Set active command */
+    
+    GSM->FTP.BytesToProcess = btw;
+    GSM->FTP.Data = (void *)data;
+    Pointers.Ptr1 = bw;
+    if (bw) {
+        *bw = 0;
+    }
+    
+    __RETURN_BLOCKING(GSM, blocking, 10000);                /* Return with blocking support */
+}
+
+GSM_Result_t GSM_FTP_UploadEnd(gvol GSM_t* GSM, uint32_t blocking) {
+    __CHECK_BUSY(GSM);                                      /* Check busy status */
+    __ACTIVE_CMD(GSM, CMD_GPRS_FTPUPEND);                   /* Set active command */
+    
+    __RETURN_BLOCKING(GSM, blocking, 1000);                 /* Return with blocking support */
 }

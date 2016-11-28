@@ -3,7 +3,7 @@
  * \email   tilen@majerle.eu
  * \website https://majerle.eu/projects/gsm-at-commands-parser-for-embedded-systems
  * \license MIT
- * \version 0.3.0
+ * \version 0.4.0
  * \brief   GSM Library
  *	
 \verbatim
@@ -33,7 +33,7 @@
 \endverbatim
  */
 #ifndef GSM_H
-#define GSM_H 030
+#define GSM_H 040
 
 /* C++ detection */
 #ifdef __cplusplus
@@ -295,6 +295,7 @@ typedef struct _GSM_CONN_t {
             uint8_t Active:1;                               /*!< Connection active flag */
             uint8_t RxGetReceived:1;                        /*!< RXGET was received waiting to read data */
             uint8_t CallGetReceived:1;                      /*!< RXGET was received, notify user about new data */
+            uint8_t CallConnClosed:1;                       /*!< Connection was closed by remote server */
         } F;
         uint8_t Value;                                      /*!< Value containing all the flags in single memory */
     } Flags;                                                /*!< Union with all the listed flags */
@@ -329,8 +330,39 @@ typedef struct _GSM_HTTP_t {
  * \brief  FTP structure for GSM
  */
 typedef struct _GSM_FTP_t {
-    uint8_t ID;                                             /*!< Future use purpose */
+    uint8_t Mode;                                           /*!< FTP usage mode (execute, read) */
+    uint8_t ErrorCode;                                      /*!< Error code number */
+    uint8_t* Data;                                          /*!< Pointer to read/write data array */
+    uint32_t BytesToProcess;                                /*!< Bytes to process (read/write) at a time, selected by user on function call */
+    uint32_t BytesRead;                                     /*!< Bytes actually read from device, number of bytes we actually read in packet */
+    uint32_t BytesReadRemaining;                            /*!< Number of bytes remaining to read in current read procedure */
+    uint32_t BytesProcessedTotal;                           /*!< Total number of bytes read in FTP session */
+    uint32_t MaxBytesToPut;                                 /*!< Maximal number of bytes we can put on FTPPUT command */
+    union {
+        struct {
+            uint8_t DataAvailable:1;                        /*!< Set to 1 when data available to read */
+            uint8_t DownloadActive:1;                       /*!< Set to 1 when download session is active */
+        } F;
+        uint8_t Value;
+    } Flags;                                                /*!< FTP Flags */
 } GSM_FTP_t;
+
+/**
+ * \brief  FTP connection mode
+ */
+typedef enum _GSM_FTP_Mode_t {
+    GSM_FTP_Mode_Active = 0x00,                             /*!< Active FTP mode */
+    GSM_FTP_Mode_Passive = 0x01                             /*!< Passive FTP mode */
+} GSM_FTP_Mode_t;
+
+/**
+ * \brief  FTP upload mode
+ */
+typedef enum _GSM_FTP_UploadMode_t {
+    GSM_FTP_UploadMode_Append = 0x00,                       /*!< Append file already existing on server */
+    GSM_FTP_UploadMode_StoreUnique = 0x01,
+    GSM_FTP_UploadMode_Store = 0x02
+} GSM_FTP_UploadMode_t;
 
 /**
  * \brief  GSM network status
@@ -446,6 +478,8 @@ typedef struct _GSM_t {
             
             uint8_t HTTP_Read_Data:1;                       /*!< Set to 1 when reading data from HTTP response */
             
+            uint8_t FTP_Read_Data:1;                        /*!< Set to 1 when reading data from FTP response */
+            
             uint8_t Call_GPRS_Attached:1;                   /*!< Set to 1 when GPRS is attached sucessfully */
             uint8_t Call_GPRS_Attach_Error:1;               /*!< Set to 1 when GPRS was not attached */
             uint8_t Call_GPRS_Detached:1;                   /*!< Set to 1 when GPRS was detached */
@@ -475,6 +509,10 @@ typedef struct _GSM_t {
             
             uint8_t RespCallReady:1;                        /*!< Set to 1 when call is ready */
             uint8_t RespSMSReady:1;                         /*!< Set to 1 when SNS is ready */
+            
+            uint8_t RespFtpGet:1;                           /*!< Response for FTPGET was received */
+            uint8_t RespFtpPut:1;                           /*!< Response for FTPPUT was received */
+            uint8_t RespFtpUploadReady:1;                   /*!< Response for FTPPUT was received for uploading data available */
         } F;
         uint32_t Value;                                     /*!< Value containing all the flags in single memory */
     } Events;                                               /*!< Union holding all the required events for library internal processing */
@@ -1116,14 +1154,116 @@ uint32_t GSM_HTTP_DataAvailable(gvol GSM_t* GSM, uint32_t blocking);
  * \defgroup FTP_API
  * \brief    FTP based functions
  * \note     This section is not yet in working state and has only some proof of concept functions
+ * \since    0.4
  * \{
  */
-GSM_Result_t GSM_FTP_Begin(gvol GSM_t* GSM, uint32_t blocking);
+
+/**
+ * \brief  Enable FTP procedure
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  mode: FTP mode either active or passive. This parameter can be a value of \ref GSM_FTP_Mode_t enumeration
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
+GSM_Result_t GSM_FTP_Begin(gvol GSM_t* GSM, GSM_FTP_Mode_t mode, uint32_t blocking);
+
+/**
+ * \brief  Disable FTP procedure
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
 GSM_Result_t GSM_FTP_End(gvol GSM_t* GSM, uint32_t blocking);
 
-GSM_Result_t GSM_FTP_Connect(gvol GSM_t* GSM, const char* server, uint16_t port, const char* user, const char* pass, uint32_t blocking);
-GSM_Result_t GSM_FTP_UploadFile(gvol GSM_t* GSM, const char* folder, const char* file, const void* data, uint32_t length, uint32_t blocking);
-GSM_Result_t GSM_FTP_Disconnect(gvol GSM_t* GSM, uint32_t blocking);
+/**
+ * \brief  Authenticate to server with server name, port, username and password
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *server: Pointer to server address
+ * \param  port: FTP port to connect. In most cases, port 21 is used
+ * \param  *user: FTP username
+ * \param  *pass: FTP password
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
+GSM_Result_t GSM_FTP_Authenticate(gvol GSM_t* GSM, const char* server, uint16_t port, const char* user, const char* pass, uint32_t blocking);
+
+/**
+ * \brief  Begin with file download session
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *folder: Folder to use for file download
+ * \param  *file: File to download in specific folder. For some FTP servers, this parameter must start with "/" character
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
+GSM_Result_t GSM_FTP_DownloadBegin(gvol GSM_t* GSM, const char* folder, const char* file, uint32_t blocking);
+
+/**
+ * \brief  Checks if FTP download session is active
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
+GSM_Result_t GSM_FTP_DownloadActive(gvol GSM_t* GSM, uint32_t blocking);
+
+/**
+ * \brief  Checks if there are bytes to read in current session
+ * \note   If may happen that session is active (\ref GSM_FTP_DownloadActive) but there are no data to read.
+ *           This means that you will have to wait for incoming data a little first.
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
+GSM_Result_t GSM_FTP_DownloadAvailable(gvol GSM_t* GSM, uint32_t blocking);
+
+/**
+ * \brief  Read downloaded data from GSM device
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *data: Data to save data read from GSM
+ * \param  btr: Bytes to read from device
+ * \param  *br: Pointer to number of bytes actually read from device
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
+GSM_Result_t GSM_FTP_Download(gvol GSM_t* GSM, void* data, uint32_t btr, uint32_t* br, uint32_t blocking);
+
+/**
+ * \brief  Finish with FTP download session
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
+GSM_Result_t GSM_FTP_DownloadEnd(gvol GSM_t* GSM, uint32_t blocking);
+
+/**
+ * \brief  Begin with file upload session
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *folder: Folder to use for file download
+ * \param  *file: File to download in specific folder. For some FTP servers, this parameter must start with "/" character
+ * \param  mode: Upload mode. This parameter can be a value of \ref GSM_FTP_UploadMode_t enumeration
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
+GSM_Result_t GSM_FTP_UploadBegin(gvol GSM_t* GSM, const char* folder, const char* file, GSM_FTP_UploadMode_t mode, uint32_t blocking);
+
+/**
+ * \brief  Upload data to FTP server
+ * \note   This function can be called multiple times when more data needs to be sent
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *data: Pointer to data to upload to FTP server
+ * \param  btw: Number of bytes to write over FTP
+ * \param  *bw: Pointer to save number of bytes written over FTP
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
+GSM_Result_t GSM_FTP_Upload(gvol GSM_t* GSM, const void* data, uint32_t btw, uint32_t* bw, uint32_t blocking);
+
+/**
+ * \brief  Finish with FTP upload session
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
+GSM_Result_t GSM_FTP_UploadEnd(gvol GSM_t* GSM, uint32_t blocking);
 
 /**
  * \}
