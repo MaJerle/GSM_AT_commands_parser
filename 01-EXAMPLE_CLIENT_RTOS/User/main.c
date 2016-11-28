@@ -55,14 +55,14 @@ gvol GSM_t GSM;
 GSM_Result_t gsmRes;
 
 /* GSM pin code */
-#define GSM_PIN         "1234"
+#define GSM_PIN         "4591"
 /* GSM APN settings */
 #define GSM_APN         "internet"
 #define GSM_APN_USER    ""
 #define GSM_APN_PASS    ""
 
 /* Domain or IP for opening connection */
-#define GSM_DOMAIN      "stm32f4-discovery.net"
+#define GSM_DOMAIN      "example.com"
 #define GSM_PORT        80
 
 /* Connection structure */
