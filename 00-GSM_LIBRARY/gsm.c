@@ -1722,11 +1722,6 @@ cmd_gprs_attach_clean:
         PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
                             GSM->Events.F.RespError);       /* Wait for response */
         
-        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
-        if (GSM->ActiveResult == gsmERROR) {
-            goto cmd_gprs_cipstart_clean;
-        }
-        
         /**** CIP start ****/
         NumberToString(str, Pointers.UI);                   /* Convert number to string */
         __RST_EVENTS_RESP(GSM);                             /* Reset events */
@@ -1759,7 +1754,6 @@ cmd_gprs_attach_clean:
             }
         }
         
-cmd_gprs_cipstart_clean:
         __CMD_RESTORE(GSM);                                 /* Restore command */
         __IDLE(GSM);                                        /* Go IDLE */
     } else if (GSM->ActiveCmd == CMD_GPRS_CIPCLOSE) {       /* Close client connection */
@@ -1957,11 +1951,6 @@ cmd_gprs_httpsend_clean:                                    /* Clean everything 
         
         PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
                             GSM->Events.F.RespError);       /* Wait for response */
-        
-        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
-        if (GSM->ActiveResult == gsmERROR) {                /* Check for errors */
-            goto cmd_gprs_httpexecute_clean;                  
-        }
 
         /**** HTTP METHOD ****/
         __RST_EVENTS_RESP(GSM);                             /* Reset events */
@@ -2080,8 +2069,6 @@ cmd_gprs_httpexecute_clean:                                 /* Clean everything 
         
         PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
                             GSM->Events.F.RespError);       /* Wait for response */
-        
-        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
             
 cmd_gprs_ftpbegin_clean:                                    /* Clean everything */
         __CMD_RESTORE(GSM);                                 /* Restore command */
