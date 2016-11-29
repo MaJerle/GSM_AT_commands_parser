@@ -181,6 +181,9 @@ typedef struct {
 #define CMD_GPRS_FTPPUTOPT                  ((uint16_t)0x073F)
 #define CMD_GPRS_FTPQUIT                    ((uint16_t)0x0740)
 #define CMD_GPRS_FTPMODE                    ((uint16_t)0x0741)
+#define CMD_GPRS_HTTPSSL                    ((uint16_t)0x0742)
+#define CMD_GPRS_FTPSSL                     ((uint16_t)0x0743)
+#define CMD_GPRS_CIPSSL                     ((uint16_t)0x0744)
 #define CMD_IS_ACTIVE_GPRS(p)               ((p)->ActiveCmd >= 0x0700 && (p)->ActiveCmd < 0x0800)
 
 #define __DEBUG(fmt, ...)                   printf(fmt, ##__VA_ARGS__)
@@ -1709,8 +1712,23 @@ cmd_gprs_attach_clean:
     } else if (GSM->ActiveCmd == CMD_GPRS_CIPSTART) {       /* Start new connection as client */
         __CMD_SAVE(GSM);                                    /* Save command */
         
-        NumberToString(str, Pointers.UI);                   /* Convert number to string */
+        /**** CONN over SSL ****/
+        __RST_EVENTS_RESP(GSM);                             /* Reset events */
+        UART_SEND_STR(FROMMEM("AT+CIPSSL="));               /* Send command */
+        UART_SEND_STR(FROMMEM(Pointers.CPtr3));
+        UART_SEND_STR(GSM_CRLF);
+        StartCommand(GSM, CMD_GPRS_CIPSSL, NULL);           /* Start command */
         
+        PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
+                            GSM->Events.F.RespError);       /* Wait for response */
+        
+        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
+        if (GSM->ActiveResult == gsmERROR) {
+            goto cmd_gprs_cipstart_clean;
+        }
+        
+        /**** CIP start ****/
+        NumberToString(str, Pointers.UI);                   /* Convert number to string */
         __RST_EVENTS_RESP(GSM);                             /* Reset events */
         UART_SEND_STR(FROMMEM("AT+CIPSTART=0,\""));         /* Send command */
         UART_SEND_STR(FROMMEM(Pointers.CPtr2));             /* TCP/UDP */
@@ -1741,6 +1759,7 @@ cmd_gprs_attach_clean:
             }
         }
         
+cmd_gprs_cipstart_clean:
         __CMD_RESTORE(GSM);                                 /* Restore command */
         __IDLE(GSM);                                        /* Go IDLE */
     } else if (GSM->ActiveCmd == CMD_GPRS_CIPCLOSE) {       /* Close client connection */
@@ -1928,6 +1947,21 @@ cmd_gprs_httpsend_clean:                                    /* Clean everything 
         if (GSM->ActiveResult == gsmERROR) {                /* Check for errors */
             goto cmd_gprs_httpexecute_clean;                  
         }
+        
+        /**** HTTP SSL ****/
+        __RST_EVENTS_RESP(GSM);                             /* Reset events */
+        UART_SEND_STR(FROMMEM("AT+HTTPSSL="));              /* Send command */
+        UART_SEND_STR(FROMMEM(Pointers.CPtr1));
+        UART_SEND_STR(GSM_CRLF);
+        StartCommand(GSM, CMD_GPRS_HTTPSSL, NULL);          /* Start command */
+        
+        PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
+                            GSM->Events.F.RespError);       /* Wait for response */
+        
+        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
+        if (GSM->ActiveResult == gsmERROR) {                /* Check for errors */
+            goto cmd_gprs_httpexecute_clean;                  
+        }
 
         /**** HTTP METHOD ****/
         __RST_EVENTS_RESP(GSM);                             /* Reset events */
@@ -2025,7 +2059,7 @@ cmd_gprs_httpexecute_clean:                                 /* Clean everything 
         /**** Set FTP mode ****/
         __RST_EVENTS_RESP(GSM);                             /* Reset events */
         UART_SEND_STR(FROMMEM("AT+FTPMODE="));              /* Send command */
-        UART_SEND_STR(Pointers.UI ? FROMMEM("1") : FROMMEM("0"));
+        UART_SEND_STR(FROMMEM(Pointers.CPtr1));
         UART_SEND_STR(GSM_CRLF);
         StartCommand(GSM, CMD_GPRS_FTPMODE, NULL);          /* Start command */
         
@@ -2033,7 +2067,22 @@ cmd_gprs_httpexecute_clean:                                 /* Clean everything 
                             GSM->Events.F.RespError);       /* Wait for response */
         
         GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
+        if (GSM->ActiveResult == gsmERROR) {                /* Check for errors */
+            goto cmd_gprs_ftpbegin_clean;
+        }
         
+        /**** Set FTP over SSL ****/
+        __RST_EVENTS_RESP(GSM);                             /* Reset events */
+        UART_SEND_STR(FROMMEM("AT+FTPSSL="));               /* Send command */
+        UART_SEND_STR(FROMMEM(Pointers.CPtr2));
+        UART_SEND_STR(GSM_CRLF);
+        StartCommand(GSM, CMD_GPRS_FTPSSL, NULL);           /* Start command */
+        
+        PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
+                            GSM->Events.F.RespError);       /* Wait for response */
+        
+        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
+            
 cmd_gprs_ftpbegin_clean:                                    /* Clean everything */
         __CMD_RESTORE(GSM);                                 /* Restore command */
         __IDLE(GSM);                                        /* Go IDLE mode */
@@ -3077,20 +3126,15 @@ GSM_Result_t GSM_GPRS_Detach(gvol GSM_t* GSM, uint32_t blocking) {
 /******************************************************************************/
 /***                           CLIENT TCP/UDP API                            **/
 /******************************************************************************/
-GSM_Result_t GSM_CONN_Start(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, 
-    GSM_CONN_Type_t type, const char* host, uint16_t port, uint32_t blocking) {
-        
+GSM_Result_t GSM_CONN_Start(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, GSM_CONN_Type_t type, GSM_CONN_SSL_t ssl, const char* host, uint16_t port, uint32_t blocking) {
     __CHECK_INPUTS(conn && host);                           /* Check valid data */
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_GPRS_CIPSTART);                   /* Set active command */
      
     Pointers.Ptr1 = conn;                                   /* Save connection pointer */
     Pointers.CPtr1 = host;                                  /* Save pointers */
-    if (type == GSM_CONN_Type_TCP) {                        /* Check connection type */
-        Pointers.CPtr2 = FROMMEM("TCP");                    /* TCP connection */
-    } else {
-        Pointers.CPtr2 = FROMMEM("UDP");                    /* UDP connection */
-    }
+    Pointers.CPtr2 = FROMMEM(type == GSM_CONN_Type_TCP ? "TCP" : "UDP");
+    Pointers.CPtr3 = FROMMEM(type == GSM_CONN_Type_TCP && ssl ? "1" : "0");
     Pointers.UI = port;                                     /* Save port */
     
     conn->ID = 0;                                           /* Set connection ID */
@@ -3190,7 +3234,7 @@ GSM_Result_t GSM_HTTP_SetContent(gvol GSM_t* GSM, const char* content, uint32_t 
     __RETURN_BLOCKING(GSM, blocking, 1000);                 /* Return with blocking support */
 }
 
-GSM_Result_t GSM_HTTP_Execute(gvol GSM_t* GSM, const char* url, GSM_HTTP_Method_t method, uint32_t blocking) {
+GSM_Result_t GSM_HTTP_Execute(gvol GSM_t* GSM, const char* url, GSM_HTTP_Method_t method, GSM_HTTP_SSL_t ssl, uint32_t blocking) {
     __CHECK_INPUTS(url);                                    /* Check valid data */
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_GPRS_HTTPEXECUTE);                /* Set active command */
@@ -3204,6 +3248,7 @@ GSM_Result_t GSM_HTTP_Execute(gvol GSM_t* GSM, const char* url, GSM_HTTP_Method_
     
     GSM->HTTP.TMP = url;                                    /* Save URL */
     GSM->HTTP.Method = method;                              /* Set request method */
+    Pointers.CPtr1 = FROMMEM(ssl ? "1" : "0");
     
     __RETURN_BLOCKING(GSM, blocking, 1000);                 /* Return with blocking support */
 }
@@ -3231,11 +3276,22 @@ uint32_t GSM_HTTP_DataAvailable(gvol GSM_t* GSM, uint32_t blocking) {
 /******************************************************************************/
 /***                                 FTP API                                 **/
 /******************************************************************************/
-GSM_Result_t GSM_FTP_Begin(gvol GSM_t* GSM, GSM_FTP_Mode_t mode, uint32_t blocking) {
+GSM_Result_t GSM_FTP_Begin(gvol GSM_t* GSM, GSM_FTP_Mode_t mode, GSM_FTP_SSL_t ssl, uint32_t blocking) {
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_GPRS_FTPBEGIN);                   /* Set active command */
     
-    Pointers.UI = (uint32_t)mode;
+    Pointers.CPtr1 = FROMMEM(mode ? "1" : "0");
+    switch (ssl) {
+        case GSM_FTP_SSL_Disable:
+            Pointers.CPtr2 = FROMMEM("0");
+            break;
+        case GSM_FTP_SSL_Implicit:
+            Pointers.CPtr2 = FROMMEM("1");
+            break;
+        case GSM_FTP_SSL_Explicit:
+            Pointers.CPtr2 = FROMMEM("2");
+            break;
+    }
     
     __RETURN_BLOCKING(GSM, blocking, 1000);                 /* Return with blocking support */
 }

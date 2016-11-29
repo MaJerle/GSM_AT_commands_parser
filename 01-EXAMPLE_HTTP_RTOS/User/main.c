@@ -160,7 +160,7 @@ void GSM_Main_Thread(void const* params) {
                     if (action) {
                         /* GET REQUEST */
                         /* Make actual HTTP request */
-                        if ((gsmRes = GSM_HTTP_Execute(&GSM, GSM_HTTP_URL, GSM_HTTP_Method_GET, 1)) == gsmOK) {
+                        if ((gsmRes = GSM_HTTP_Execute(&GSM, GSM_HTTP_URL, GSM_HTTP_Method_GET, GSM_HTTP_SSL_Disable, 1)) == gsmOK) {
                             /* HTTP request executed to server, wait for response data */
                             while (GSM_HTTP_DataAvailable(&GSM, 1)) {
                                 /* Read as many bytes as possible */
@@ -179,7 +179,7 @@ void GSM_Main_Thread(void const* params) {
                         /* Set data to send first */
                         if ((gsmRes = GSM_HTTP_SetData(&GSM, send, sizeof(send), 1)) == gsmOK) {
                             /* Make actual HTTP request */
-                            if ((gsmRes = GSM_HTTP_Execute(&GSM, GSM_HTTP_URL, GSM_HTTP_Method_POST, 1)) == gsmOK) {
+                            if ((gsmRes = GSM_HTTP_Execute(&GSM, GSM_HTTP_URL, GSM_HTTP_Method_POST, GSM_HTTP_SSL_Disable, 1)) == gsmOK) {
                                 /* HTTP request executed to server, wait for response data */
                                 while (GSM_HTTP_DataAvailable(&GSM, 1)) {
                                     /* Read as many bytes as possible */

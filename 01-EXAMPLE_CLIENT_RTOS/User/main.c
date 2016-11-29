@@ -157,7 +157,7 @@ void GSM_Main_Thread(void const* params) {
                 printf("GPRS Attached\r\n");
                 
                 /* Try to connect to server */
-                if ((gsmRes = GSM_CONN_Start(&GSM, &Conn, GSM_CONN_Type_TCP, GSM_DOMAIN, GSM_PORT, 1)) == gsmOK) {
+                if ((gsmRes = GSM_CONN_Start(&GSM, &Conn, GSM_CONN_Type_TCP, GSM_CONN_SSL_Disable, GSM_DOMAIN, GSM_PORT, 1)) == gsmOK) {
                     printf("Connected to server!\r\n");
                     
                     /* We are connected, send data */

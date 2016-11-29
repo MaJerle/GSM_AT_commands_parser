@@ -279,6 +279,14 @@ typedef enum _GSM_CONN_Type_t {
 } GSM_CONN_Type_t;
 
 /**
+ * \brief  Connection over SSL selection
+ */
+typedef enum _GSM_CONN_SSL_t {
+    GSM_CONN_SSL_Disable = 0x00,                            /*!< Disable TCP over SSL */
+    GSM_CONN_SSL_Enable = 0x01                              /*!< Enable TCP over SSL */
+} GSM_CONN_SSL_t;
+
+/**
  * \brief  Connection structure for GSM
  */
 typedef struct _GSM_CONN_t {
@@ -327,6 +335,14 @@ typedef struct _GSM_HTTP_t {
 } GSM_HTTP_t;
 
 /**
+ * \brief  HTTP over SSL selection
+ */
+typedef enum _GSM_HTTP_SSL_t {
+    GSM_HTTP_SSL_Disable = 0x00,                            /*!< Disable SSL usage for HTTP */
+    GSM_HTTP_SSL_Enable = 0x01                              /*!< Enable SSL usage for HTTP */
+} GSM_HTTP_SSL_t;
+
+/**
  * \brief  FTP structure for GSM
  */
 typedef struct _GSM_FTP_t {
@@ -354,6 +370,15 @@ typedef enum _GSM_FTP_Mode_t {
     GSM_FTP_Mode_Active = 0x00,                             /*!< Active FTP mode */
     GSM_FTP_Mode_Passive = 0x01                             /*!< Passive FTP mode */
 } GSM_FTP_Mode_t;
+
+/**
+ * \brief  FTP over SSL selection
+ */
+typedef enum _GSM_FTP_SSL_t {
+    GSM_FTP_SSL_Disable = 0x00,                             /*!< Do not use FTP over SSL */
+    GSM_FTP_SSL_Implicit = 0x01,                            /*!< Use FTP over SSL in implicit mode */
+    GSM_FTP_SSL_Explicit = 0x02                             /*!< Use FTP over SSL in explicit mode */
+} GSM_FTP_SSL_t;
 
 /**
  * \brief  FTP upload mode
@@ -1007,19 +1032,20 @@ GSM_Result_t GSM_GPRS_Detach(gvol GSM_t* GSM, uint32_t blocking);
  * \param  *GSM: Pointer to working \ref GSM_t structure
  * \param  *conn: Pointer to empty \ref GSM_CONN_t structure for connection identifier
  * \param  type: Connection type. This parameter can be a value of \ref GSM_CONN_Type_t enumeration
+ * \param  ssl: Connection over SSL. This parameter can be a value of \ref GSM_CONN_SSL_t enumeration. Parameter is valid only with TCP connection
  * \param  *host: Pointer to host where to connect. Can be a domain name or IP address, both in sting format
  * \param  port: Port to connect to
  * \param  blocking: Status whether this function should be blocking to check for response
  * \retval Member of \ref GSM_Result_t enumeration
  */
-GSM_Result_t GSM_CONN_Start(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, GSM_CONN_Type_t type, const char* host, uint16_t port, uint32_t blocking);
+GSM_Result_t GSM_CONN_Start(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, GSM_CONN_Type_t type, GSM_CONN_SSL_t ssl, const char* host, uint16_t port, uint32_t blocking);
 
 /**
  * \brief  Send data on active connection
  * \param  *GSM: Pointer to working \ref GSM_t structure
  * \param  *conn: Pointer to working \ref GSM_CONN_t structure for connection
  * \param  *data: Pointer to data to send
- * \param  btw: Number of data to send
+ * \param  btw: Number of bytes to send
  * \param  *bw: Pointer to save number of bytes actually sent in connection
  * \param  blocking: Status whether this function should be blocking to check for response
  * \retval Member of \ref GSM_Result_t enumeration
@@ -1114,12 +1140,13 @@ GSM_Result_t GSM_HTTP_SetData(gvol GSM_t* GSM, const void* data, uint32_t btw, u
 /**
  * \brief  Execute HTTP request to server with given URL and method
  * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *url: Remote URL to use starting with "http://"
+ * \param  *url: Remote URL to use starting with "http://" or "https://"
  * \param  method: HTTP method to use. This parameter can be a value of \ref GSM_HTTP_Method_t enumeration
+ * \param  ssl: Enable SSL for HTTP. This parameter can be a value of \ref GSM_HTTP_SSL_t enumeration
  * \param  blocking: Status whether this function should be blocking to check for response
  * \retval Member of \ref GSM_Result_t enumeration
  */
-GSM_Result_t GSM_HTTP_Execute(gvol GSM_t* GSM, const char* url, GSM_HTTP_Method_t method, uint32_t blocking);
+ GSM_Result_t GSM_HTTP_Execute(gvol GSM_t* GSM, const char* url, GSM_HTTP_Method_t method, GSM_HTTP_SSL_t ssl, uint32_t blocking);
 
 /**
  * \brief  Read data from HTTP response
@@ -1153,7 +1180,6 @@ uint32_t GSM_HTTP_DataAvailable(gvol GSM_t* GSM, uint32_t blocking);
 /**
  * \defgroup FTP_API
  * \brief    FTP based functions
- * \note     This section is not yet in working state and has only some proof of concept functions
  * \since    0.4
  * \{
  */
@@ -1162,10 +1188,11 @@ uint32_t GSM_HTTP_DataAvailable(gvol GSM_t* GSM, uint32_t blocking);
  * \brief  Enable FTP procedure
  * \param  *GSM: Pointer to working \ref GSM_t structure
  * \param  mode: FTP mode either active or passive. This parameter can be a value of \ref GSM_FTP_Mode_t enumeration
+ * \param  ssl: FTP over SSL. This parameter can be a value of \ref GSM_FTP_SSL_t enumeration
  * \param  blocking: Status whether this function should be blocking to check for response
  * \retval Member of \ref GSM_Result_t enumeration
  */
-GSM_Result_t GSM_FTP_Begin(gvol GSM_t* GSM, GSM_FTP_Mode_t mode, uint32_t blocking);
+GSM_Result_t GSM_FTP_Begin(gvol GSM_t* GSM, GSM_FTP_Mode_t mode, GSM_FTP_SSL_t ssl, uint32_t blocking);
 
 /**
  * \brief  Disable FTP procedure
