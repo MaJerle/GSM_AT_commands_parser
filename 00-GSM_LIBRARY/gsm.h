@@ -402,6 +402,26 @@ typedef enum _GSM_NetworkStatus_t {
 } GSM_NetworkStatus_t;
 
 /**
+ * \brief  GSM GPS location over GPRS
+ */
+typedef struct _GSM_GPS_t {
+    uint16_t Error;                                         /*!< Error number if exists */
+    float Latitude;                                         /*!< GPS latitude location */
+    float Longitude;                                        /*!< GPS longitude location */
+    GSM_Date_t Date;                                        /*!< Date of GPS, UTC */
+    GSM_Time_t Time;                                        /*!< Time of GPS, UTC */
+} GSM_GPS_t;
+
+/**
+ * \brief  Battery informations 
+ */
+typedef struct _GSM_Battery_t {
+    uint8_t Charging;                                       /*!< Status indicating battery is charging */
+    uint8_t Percentage;                                     /*!< Battery percentage */
+    uint16_t Voltage;                                       /*!< Battery voltage in units of millivolts */
+} GSM_Battery_t;
+
+/**
  * \brief  Event enumeration for callback
  */
 typedef enum {
@@ -414,7 +434,9 @@ typedef enum {
     gsmEventSMSCMTI,                                        /*!< SMS info was received */
     gsmEventGPRSAttached,                                   /*!< GPRS has been attached */
     gsmEventGPRSAttachError,                                /*!< Error while trying to attach GPRS */
-    gsmEventGPRSDetached                                    /*!< GPRS has been detached */
+    gsmEventGPRSDetached,                                   /*!< GPRS has been detached */
+    gsmEventUVWarning,                                      /*!< Under voltage warning received */
+    gsmEventUVPowerDown,                                    /*!< Under voltage power down */
 } GSM_Event_t;
 
 /**
@@ -509,6 +531,9 @@ typedef struct _GSM_t {
             uint8_t Call_GPRS_Attach_Error:1;               /*!< Set to 1 when GPRS was not attached */
             uint8_t Call_GPRS_Detached:1;                   /*!< Set to 1 when GPRS was detached */
             
+            uint8_t Call_UV_Warn:1;                         /*!< Set to 1 when undervoltage warning received */
+            uint8_t Call_UV_PD:1;                           /*!< Set to 1 when undervoltage power down received */
+            
             uint8_t LastOperationStatus:1;
         } F;
         uint32_t Value;                                     /*!< Value containing all the flags in single memory */
@@ -520,6 +545,7 @@ typedef struct _GSM_t {
         struct {
             uint8_t RespOk:1;                               /*!< OK message response */
             uint8_t RespError:1;                            /*!< Error message response */
+            uint8_t RespTimeout:1;                          /*!< Timeout detected */
             uint8_t RespBracket:1;                          /*!< Bracket received (SMS messages) */
             
             uint8_t RespConnectOk:1;                        /*!< n, CONNECT OK was returned from device */
@@ -683,6 +709,26 @@ GSM_Result_t GSM_INFO_GetRevision(gvol GSM_t* GSM, char* str, uint32_t length, u
  * \retval Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_INFO_GetSerialNumber(gvol GSM_t* GSM, char* str, uint32_t length, uint32_t blocking);
+
+/**
+ * \brief  Get AT software info on GSM device
+ * \param  *ESP: Pointer to working \ref GSM_t structure
+ * \param  *rev: Pointer to array of string to save revision version.
+ *               Length of array should be at least 30 bytes but mostly depends on actual ESP8266 AT software.
+ *               Use NULL if you don't need revision version
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref ESP_Result_t enumeration
+ */
+GSM_Result_t GSM_INFO_GetSoftwareInfo(gvol GSM_t* GSM, char* rev, uint32_t blocking);
+
+/**
+ * \brief  Get battery status informations
+ * \param  *ESP: Pointer to working \ref GSM_t structure
+ * \parma  *bat: Pointer to empty \ref GSM_Battery_t structure to save response
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref ESP_Result_t enumeration
+ */
+GSM_Result_t GSM_INFO_GetBatteryInfo(gvol GSM_t* GSM, GSM_Battery_t* bat, uint32_t blocking);
 
 /**
  * \}
@@ -1014,6 +1060,17 @@ GSM_Result_t GSM_GPRS_Attach(gvol GSM_t* GSM, const char* apn, const char* user,
  * \retval Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_GPRS_Detach(gvol GSM_t* GSM, uint32_t blocking);
+
+/**
+ * \brief  Gets GPS location from GPRS and current UTC time
+ * \note   Connection with GRPS must be active in order to get information
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *GPS: Pointer to empty ref \GSM_GPS_t to save GPS information and date/time information
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
+GSM_Result_t GSM_GPRS_GetLocationAndTime(gvol GSM_t* GSM, GSM_GPS_t* GPS, uint32_t blocking);
+
 /**
  * \}
  */

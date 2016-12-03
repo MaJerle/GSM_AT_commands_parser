@@ -24,6 +24,7 @@
  * |----------------------------------------------------------------------
  */
 #include "gsm.h"
+#include "math.h"
 
 /******************************************************************************/
 /******************************************************************************/
@@ -113,6 +114,8 @@ typedef struct {
 #define CMD_INFO_CGMR                       ((uint16_t)0x0403)
 #define CMD_INFO_CNUM                       ((uint16_t)0x0404)
 #define CMD_INFO_CGSN                       ((uint16_t)0x0405)
+#define CMD_INFO_GMR                        ((uint16_t)0x0406)
+#define CMD_INFO_CBC                        ((uint16_t)0x0407)
 #define CMD_IS_ACTIVE_INFO(p)               ((p)->ActiveCmd >= 0x0400 && (p)->ActiveCmd < 0x0500)
 
 #define CMD_PB                              ((uint16_t)0x0500)
@@ -184,6 +187,7 @@ typedef struct {
 #define CMD_GPRS_HTTPSSL                    ((uint16_t)0x0742)
 #define CMD_GPRS_FTPSSL                     ((uint16_t)0x0743)
 #define CMD_GPRS_CIPSSL                     ((uint16_t)0x0744)
+#define CMD_GPRS_CIPGSMLOC                  ((uint16_t)0x0745)
 #define CMD_IS_ACTIVE_GPRS(p)               ((p)->ActiveCmd >= 0x0700 && (p)->ActiveCmd < 0x0800)
 
 #define __DEBUG(fmt, ...)                   printf(fmt, ##__VA_ARGS__)
@@ -351,7 +355,7 @@ void* mem_mem(void* haystack, size_t haystacksize, void* needle, size_t needlesi
 
 /* Parses and returns number from string */
 gstatic
-int32_t ParseNumber(char* ptr, uint8_t* cnt) {
+int32_t ParseNumber(const char* ptr, uint8_t* cnt) {
     uint8_t minus = 0, i = 0;
     int32_t sum = 0;
     
@@ -374,9 +378,35 @@ int32_t ParseNumber(char* ptr, uint8_t* cnt) {
     return sum;                                       		/* Return number */
 }
 
+/* Parse float number */
+static
+float ParseFloatNumber(const char* ptr, uint8_t* cnt) {
+    uint8_t i = 0, j = 0;
+    float sum = 0.0f;
+
+    sum = (float)ParseNumber(ptr, &i);                      /* Parse number */
+    j += i;
+    ptr += i;
+    if (*ptr == '.') {                                      /* Check decimals */
+        float dec;
+        dec = (float)ParseNumber(ptr + 1, &i) / (float)pow(10, i);
+        if (sum >= 0) {
+            sum += dec;
+        } else {
+            sum -= dec;
+        }
+        j += i + 1;
+    }
+
+    if (cnt != NULL) {                                      /* Save number of characters used for number*/
+        *cnt = j;
+    }
+    return sum;                                             /* Return number */
+}
+
 /* Parses date from string and stores to date structure */
 gstatic
-void ParseDATE(gvol GSM_t* GSM, GSM_Date_t* DateStr, char* str) {
+void ParseDATE(gvol GSM_t* GSM, GSM_Date_t* DateStr, const char* str) {
     uint8_t len = 0, i;
     
     DateStr->Year = 2000 + ParseNumber(&str[0], &i);
@@ -388,7 +418,7 @@ void ParseDATE(gvol GSM_t* GSM, GSM_Date_t* DateStr, char* str) {
 
 /* Parses time from string and stores to time structure */
 gstatic
-void ParseTIME(gvol GSM_t* GSM, GSM_Time_t* TimeStr, char* str) {
+void ParseTIME(gvol GSM_t* GSM, GSM_Time_t* TimeStr, const char* str) {
     uint8_t len = 0, i;
     
     TimeStr->Hours = ParseNumber(&str[0], &i);
@@ -400,8 +430,8 @@ void ParseTIME(gvol GSM_t* GSM, GSM_Time_t* TimeStr, char* str) {
 
 /* Parses +CMGR response for reading SMS data */
 gstatic
-void ParseCMGR(gvol GSM_t* GSM, GSM_SMS_Entry_t* sms, char* str) {
-    char *p = str, *saveptr, *token;
+void ParseCMGR(gvol GSM_t* GSM, GSM_SMS_Entry_t* sms, const char* str) {
+    char *p = (char *)str, *saveptr, *token;
     uint8_t i = 0;
     
     token = strtok_r(p, ",", &saveptr);
@@ -435,7 +465,7 @@ void ParseCMGR(gvol GSM_t* GSM, GSM_SMS_Entry_t* sms, char* str) {
 }
 /* Parses +CMGL response for reading SMS data */
 gstatic
-void ParseCMGL(gvol GSM_t* GSM, GSM_SMS_Entry_t* sms, char* str) {
+void ParseCMGL(gvol GSM_t* GSM, GSM_SMS_Entry_t* sms, const char* str) {
     uint8_t cnt;
     
     sms->Position = ParseNumber(str, &cnt);                 /* Parse number */
@@ -444,7 +474,7 @@ void ParseCMGL(gvol GSM_t* GSM, GSM_SMS_Entry_t* sms, char* str) {
 }
 /* Parses +CLCC statement */
 gstatic
-void ParseCLCC(gvol GSM_t* GSM, gvol GSM_CallInfo_t* CallInfo, char* str) {
+void ParseCLCC(gvol GSM_t* GSM, gvol GSM_CallInfo_t* CallInfo, const char* str) {
     uint8_t cnt = 0;
     
     CallInfo->ID = ParseNumber(str, &cnt);                  /* Get call ID */
@@ -489,7 +519,7 @@ void ParseCLCC(gvol GSM_t* GSM, gvol GSM_CallInfo_t* CallInfo, char* str) {
 }
 /* Parses +CMTI statement */
 gstatic
-void ParseCMTI(gvol GSM_t* GSM, gvol GSM_SmsInfo_t* SmsInfo, char* str) {
+void ParseCMTI(gvol GSM_t* GSM, gvol GSM_SmsInfo_t* SmsInfo, const char* str) {
     if (*str == '"') {
         str++;
     }
@@ -522,7 +552,7 @@ void ParseCPIN(gvol GSM_t* GSM, char* str) {
 }
 /* Parses +CPBR statement */
 gstatic
-void ParseCPBR(gvol GSM_t* GSM, GSM_PB_Entry_t* entry, char* str) {
+void ParseCPBR(gvol GSM_t* GSM, GSM_PB_Entry_t* entry, const char* str) {
     uint8_t cnt;
     
     entry->Index = ParseNumber(str, &cnt);                  /* Get index number */
@@ -560,7 +590,7 @@ void ParseCPBR(gvol GSM_t* GSM, GSM_PB_Entry_t* entry, char* str) {
 }
 /* Parses IP string */
 gstatic
-void ParseIP(gvol GSM_t* GSM, uint8_t* ip, char* str) {
+void ParseIP(gvol GSM_t* GSM, uint8_t* ip, const char* str) {
     uint8_t cnt;
     *ip++ = ParseNumber(str, &cnt);
     str += cnt + 1;
@@ -581,7 +611,7 @@ void ParseCREG(gvol GSM_t* GSM, char* str) {
 }
 /* Parses CIPRXGET statement */
 gstatic 
-void ParseCIPRXGET(gvol GSM_t* GSM, GSM_CONN_t* conn, char* str) {
+void ParseCIPRXGET(gvol GSM_t* GSM, GSM_CONN_t* conn, const char* str) {
     uint8_t cnt, num, connID;
     
     num = ParseNumber(str, &cnt);                           /* Response number */
@@ -606,7 +636,7 @@ void ParseCIPRXGET(gvol GSM_t* GSM, GSM_CONN_t* conn, char* str) {
 
 /* Parse +HTTPACTION statement */
 gstatic
-void ParseHTTPACTION(gvol GSM_t* GSM, gvol GSM_HTTP_t* http, char* str) {
+void ParseHTTPACTION(gvol GSM_t* GSM, gvol GSM_HTTP_t* http, const char* str) {
     uint8_t cnt;
     
     http->Method = (GSM_HTTP_Method_t)ParseNumber(str, &cnt);   /* Parse number for method */
@@ -618,7 +648,7 @@ void ParseHTTPACTION(gvol GSM_t* GSM, gvol GSM_HTTP_t* http, char* str) {
 
 /* Parse +FTPPUT statement */
 gstatic
-void ParseFTPPUT(gvol GSM_t* GSM, gvol GSM_FTP_t* ftp, char* str) {
+void ParseFTPPUT(gvol GSM_t* GSM, gvol GSM_FTP_t* ftp, const char* str) {
     uint8_t cnt;
     
     ftp->Mode = ParseNumber(str, &cnt);                     /* Parse number for method */
@@ -638,7 +668,7 @@ void ParseFTPPUT(gvol GSM_t* GSM, gvol GSM_FTP_t* ftp, char* str) {
 
 /* Parse +FTPGET statement */
 gstatic
-void ParseFTPGET(gvol GSM_t* GSM, gvol GSM_FTP_t* ftp, char* str) {
+void ParseFTPGET(gvol GSM_t* GSM, gvol GSM_FTP_t* ftp, const char* str) {
     uint8_t cnt;
     
     ftp->Mode = ParseNumber(str, &cnt);                     /* Parse number for method */
@@ -660,6 +690,53 @@ void ParseFTPGET(gvol GSM_t* GSM, gvol GSM_FTP_t* ftp, char* str) {
             ftp->Flags.F.DataAvailable = 0;
         }
     }
+}
+
+/* Parse +CIPGSMLOC statement */
+gstatic
+void ParseCIPGSMLOC(gvol GSM_t* GSM, GSM_GPS_t* gps, const char* str) {
+    uint8_t cnt;
+    
+    gps->Error = ParseNumber(str, &cnt);                    /* Check for error */
+    str += cnt + 1;
+    
+    if (gps->Error > 0) {                                   /* Ignore others on error */
+        return;
+    }
+    
+    /* Parse GPS location */
+    gps->Latitude = ParseFloatNumber(str, &cnt);            /*!< Parse latitude */
+    str += cnt + 1;
+    gps->Longitude = ParseFloatNumber(str, &cnt);           /*!< Parse longitude */
+    str += cnt + 1;
+    
+    /* Parse date, it has different format in compare to others */
+    gps->Date.Year = ParseNumber(str, &cnt);                /* It is YYYY format, no need to add 2000 */
+    str += cnt + 1;
+    gps->Date.Month = ParseNumber(str, &cnt);
+    str += cnt + 1;
+    gps->Date.Day = ParseNumber(str, &cnt);
+    str += cnt + 1;
+    
+    /* Parse time */
+    gps->Time.Hours = ParseNumber(str, &cnt);
+    str += cnt + 1;
+    gps->Time.Minutes = ParseNumber(str, &cnt);
+    str += cnt + 1;
+    gps->Time.Seconds = ParseNumber(str, &cnt);
+    str += cnt + 1;
+}
+
+/* Parse +CBC statement */
+gstatic 
+void ParseCBC(gvol GSM_t* GSM, GSM_Battery_t* bat, const char* str) {
+    uint8_t cnt;
+    
+    bat->Charging = ParseNumber(str, &cnt);                 /* Check for error */
+    str += cnt + 1;
+    bat->Percentage = ParseNumber(str, &cnt);               /* Read battery percentage */
+    str += cnt + 1;
+    bat->Voltage = ParseNumber(str, &cnt);                  /* Read battery voltage */
 }
 
 /* Processes received string from module */
@@ -702,11 +779,15 @@ void ParseReceived(gvol GSM_t* GSM, Received_t* Received) {
     if (CMD_IS_ACTIVE_INFO(GSM) && !is_ok && !is_error) {   /* Active command regarding GSM INFO */
         if (GSM->ActiveCmd == CMD_INFO_CGMI) {
             if (strncmp(str, FROMMEM("AT+CGMI"), 7) != 0) { /* Device manufacturer */
-                strncpy((char *)Pointers.Ptr1, str, length - 2);    /* Copy received string to memory */
+                if (Pointers.Ptr1) {
+                    strncpy((char *)Pointers.Ptr1, str, length - 2);/* Copy received string to memory */
+                }
             }
         } else if (GSM->ActiveCmd == CMD_INFO_CGMM) {
             if (strncmp(str, FROMMEM("AT+CGMM"), 7) != 0) { /* Device number */
-                strncpy((char *)Pointers.Ptr1, str, length - 2);    /* Copy received string to memory */
+                if (Pointers.Ptr1) {
+                    strncpy((char *)Pointers.Ptr1, str, length - 2);/* Copy received string to memory */
+                }
             }
         } else if (GSM->ActiveCmd == CMD_INFO_CGMR) {
             if (strncmp(str, FROMMEM("AT+CGMR"), 7) != 0) { /* Device revision */
@@ -714,11 +795,23 @@ void ParseReceived(gvol GSM_t* GSM, Received_t* Received) {
                     str += 9;
                     length -= 9;
                 }
-                strncpy((char *)Pointers.Ptr1, str, length - 2);    /* Copy received string to memory */
+                if (Pointers.Ptr1) {
+                    strncpy((char *)Pointers.Ptr1, str, length - 2);/* Copy received string to memory */
+                }
             }
         } else if (GSM->ActiveCmd == CMD_INFO_CGSN) {
             if (strncmp(str, FROMMEM("AT+CGSN"), 7) != 0) { /* Device serial number */
-                strncpy((char *)Pointers.Ptr1, str, length - 2);    /* Copy received string to memory */
+                if (Pointers.Ptr1) {
+                    strncpy((char *)Pointers.Ptr1, str, length - 2);/* Copy received string to memory */
+                }
+            }
+        } else if (GSM->ActiveCmd == CMD_INFO_GMR) {
+            if (strncmp(str, FROMMEM("Revision:"), 9) == 0) {
+                if (Pointers.Ptr1) {                        /* If valid pointer */
+                    int8_t len = length - 9 - 2;
+                    strncpy((char *)Pointers.Ptr1, &str[9], len > 0 ? len : 0);
+                    ((char *)Pointers.Ptr1)[len] = 0;       /* Add zero to end of string */
+                }
             }
         }
     }
@@ -861,7 +954,21 @@ void ParseReceived(gvol GSM_t* GSM, Received_t* Received) {
             if (GSM->FTP.Mode == 2) {                       /* +FTPPUT:2,.. received */
                 GSM->Events.F.RespFtpUploadReady = 1;       /* Upload is ready to proceed */
             }
+        } else if (GSM->ActiveCmd == CMD_GPRS_CIPGSMLOC && strncmp(str, FROMMEM("+CIPGSMLOC"), 10) == 0) {
+            if (Pointers.Ptr1) {                            /* Check valid pointer */
+                ParseCIPGSMLOC(GSM, (GSM_GPS_t *)Pointers.Ptr1, str + 12);  /* Parse GPS location and time */
+            }
+        } else if (GSM->ActiveCmd == CMD_INFO_CBC && strncmp(str, FROMMEM("+CBC"), 4) == 0) {
+            if (Pointers.Ptr1) {                            /* Check valid pointer */
+                ParseCBC(GSM, (GSM_Battery_t *)Pointers.Ptr1, str + 6); /* Parse battery status */
+            }
         }
+    }
+    
+    /* Check under-voltage warning, don't know why SIMCOM uses 2 "N" characters in "WARNING" */
+    if ((length == 24 && strcmp(str, FROMMEM("UNDER-VOLTAGE WARNNING\r\n")) == 0) ||
+        (length == 23 && strcmp(str, FROMMEM("UNDER-VOLTAGE WARNING\r\n")) == 0)) { /* Maybe they will fix some day */
+        GSM->Flags.F.Call_UV_Warn = 1;                      /* Set flag for callback */
     }
     
     if (GSM->ActiveCmd == CMD_GPRS_HTTPDATA && strncmp(str, "DOWNLOAD", 8) == 0) {  /* Download received? */
@@ -1028,6 +1135,28 @@ PT_THREAD(PT_Thread_INFO(struct pt* pt, gvol GSM_t* GSM)) {
         UART_SEND_STR(FROMMEM("AT+CGSN"));                  /* Send data to device */
         UART_SEND_STR(FROMMEM(GSM_CRLF));
         StartCommand(GSM, CMD_INFO_CGSN, NULL);             /* Start command */
+        
+        PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
+                            GSM->Events.F.RespError);       /* Wait for response */
+        
+        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
+        __IDLE(GSM);                                        /* Go IDLE state */
+    } else if (GSM->ActiveCmd == CMD_INFO_GMR) {            /* Check software revision number */
+        __RST_EVENTS_RESP(GSM);                             /* Reset events */
+        UART_SEND_STR(FROMMEM("AT+GMR"));                   /* Send data to device */
+        UART_SEND_STR(FROMMEM(GSM_CRLF));
+        StartCommand(GSM, CMD_INFO_GMR, NULL);              /* Start command */
+        
+        PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
+                            GSM->Events.F.RespError);       /* Wait for response */
+        
+        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
+        __IDLE(GSM);                                        /* Go IDLE state */
+    } else if (GSM->ActiveCmd == CMD_INFO_CBC) {            /* Battery informations */
+        __RST_EVENTS_RESP(GSM);                             /* Reset events */
+        UART_SEND_STR(FROMMEM("AT+CBC"));                   /* Send data to device */
+        UART_SEND_STR(FROMMEM(GSM_CRLF));
+        StartCommand(GSM, CMD_INFO_CBC, NULL);              /* Start command */
         
         PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
                             GSM->Events.F.RespError);       /* Wait for response */
@@ -2414,6 +2543,28 @@ cmd_gprs_ftpupbegin_clean:                                  /* Clean everything 
         
         __CMD_RESTORE(GSM);                                 /* Restore command */
         __IDLE(GSM);                                        /* Go IDLE mode */
+    } else if (GSM->ActiveCmd == CMD_GPRS_CIPGSMLOC) {      /* Get location */
+        __CMD_SAVE(GSM);                                    /* Save command */
+        
+        __RST_EVENTS_RESP(GSM);                             /* Reset events */
+        UART_SEND_STR(FROMMEM("AT+CIPGSMLOC=1,1"));         /* Send command */
+        UART_SEND_STR(GSM_CRLF);
+        StartCommand(GSM, CMD_GPRS_CIPGSMLOC, NULL);        /* Start command */
+        
+        PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
+                            GSM->Events.F.RespError);       /* Wait for response */
+        
+        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
+        
+        /* Check if response error number was 0 = OK */
+        if (Pointers.Ptr1) {
+            if (((GSM_GPS_t *)Pointers.Ptr1)->Error > 0) {  /* Check for response error code */
+                GSM->ActiveResult = gsmERROR;               /* Error */
+            }
+        }
+        
+        __CMD_RESTORE(GSM);                                 /* Restore command */
+        __IDLE(GSM);                                        /* Go IDLE mode */
     }
     
     PT_END(pt);                                             /* End thread */
@@ -2542,9 +2693,19 @@ GSM_Result_t GSM_Init(gvol GSM_t* G, const char* pin, uint32_t Baudrate, GSM_Eve
         }
         GSM_Delay(GSM, 100);
         i--;
-    }     
+    }
+    memset((void *)&Pointers, 0x00, sizeof(Pointers));      /* Reset structure */
     while (i) {
-        __ACTIVE_CMD(GSM, CMD_GEN_ATE0);                    /* Disable ECHO */
+        __ACTIVE_CMD(GSM, CMD_INFO_GMR);                    /* Enable auto notification for call, +CLCC statement */
+        GSM_WaitReady(GSM, 1000);
+        if (GSM->ActiveResult == gsmOK) {
+            break;
+        }
+        GSM_Delay(GSM, 100);
+        i--;
+    }
+    while (i) {
+        __ACTIVE_CMD(GSM, CMD_GEN_ATE1);                    /* Disable ECHO */
         GSM_WaitReady(GSM, 1000);
         if (GSM->ActiveResult == gsmOK) {
             break;
@@ -2570,7 +2731,7 @@ GSM_Result_t GSM_WaitReady(gvol GSM_t* GSM, uint32_t timeout) {
 }
 
 GSM_Result_t GSM_Delay(gvol GSM_t* GSM, uint32_t timeout) {
-    gvol uint32_t start = GSM->Time;
+    volatile uint32_t start = GSM->Time;
     do {
 #if !GSM_RTOS && !GSM_ASYNC
         GSM_Update(GSM);
@@ -2589,7 +2750,9 @@ GSM_Result_t GSM_Update(gvol GSM_t* GSM) {
     BUFFER_t* Buff = &Buffer;
     uint16_t processedCount = 500;
     
+    /* Check for timeout */
     if (GSM->ActiveCmd != CMD_IDLE && (GSM->Time - GSM->ActiveCmdStart) > GSM->ActiveCmdTimeout) {
+        GSM->Events.F.RespTimeout = 1;                      /* Timeout received */
         GSM->Events.F.RespError = 1;                        /* Set active error and process */
     }
     
@@ -2715,6 +2878,14 @@ GSM_Result_t GSM_ProcessCallbacks(gvol GSM_t* GSM) {
         GSM->Flags.F.Call_GPRS_Detached = 0;
         __CALL_CALLBACK(GSM, gsmEventGPRSDetached);
     }
+    if (__IS_READY(GSM) && GSM->Flags.F.Call_UV_Warn) {
+        GSM->Flags.F.Call_UV_Warn = 0;
+        __CALL_CALLBACK(GSM, gsmEventUVWarning);
+    }
+    if (__IS_READY(GSM) && GSM->Flags.F.Call_UV_PD) {
+        GSM->Flags.F.Call_UV_PD = 0;
+        __CALL_CALLBACK(GSM, gsmEventUVPowerDown);
+    }
     /* Check connection specific callbacks */
     for (i = 0; i < 6; i++) {
         if (!GSM->Conns[i]) {                               /* Check if connection is valid */
@@ -2750,7 +2921,7 @@ GSM_Result_t GSM_INFO_GetManufacturer(gvol GSM_t* GSM, char* str, uint32_t lengt
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_INFO_CGMI);                       /* Set active command */
     
-    Pointers.Ptr1 = str;                                    /* Save pointer to PIN */
+    Pointers.Ptr1 = str;
     
     __RETURN_BLOCKING(GSM, blocking, 1000);                 /* Return with blocking support */
 }
@@ -2760,7 +2931,7 @@ GSM_Result_t GSM_INFO_GetModel(gvol GSM_t* GSM, char* str, uint32_t length, uint
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_INFO_CGMM);                       /* Set active command */
     
-    Pointers.Ptr1 = str;                                    /* Save pointer to PIN */
+    Pointers.Ptr1 = str;
     
     __RETURN_BLOCKING(GSM, blocking, 1000);                 /* Return with blocking support */
 }
@@ -2770,7 +2941,7 @@ GSM_Result_t GSM_INFO_GetRevision(gvol GSM_t* GSM, char* str, uint32_t length, u
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_INFO_CGMR);                       /* Set active command */
     
-    Pointers.Ptr1 = str;                                    /* Save pointer to PIN */
+    Pointers.Ptr1 = str;
     
     __RETURN_BLOCKING(GSM, blocking, 1000);                 /* Return with blocking support */
 }
@@ -2780,7 +2951,27 @@ GSM_Result_t GSM_INFO_GetSerialNumber(gvol GSM_t* GSM, char* str, uint32_t lengt
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_INFO_CGSN);                       /* Set active command */
     
-    Pointers.Ptr1 = str;                                    /* Save pointer to PIN */
+    Pointers.Ptr1 = str;
+    
+    __RETURN_BLOCKING(GSM, blocking, 1000);                 /* Return with blocking support */
+}
+
+GSM_Result_t GSM_INFO_GetSoftwareInfo(gvol GSM_t* GSM, char* rev, uint32_t blocking) {
+    __CHECK_INPUTS(rev);                                    /* Check valid data */
+    __CHECK_BUSY(GSM);                                      /* Check busy status */
+    __ACTIVE_CMD(GSM, CMD_INFO_GMR);                        /* Set active command */
+    
+    Pointers.Ptr1 = rev;
+    
+    __RETURN_BLOCKING(GSM, blocking, 1000);                 /* Return with blocking support */
+}
+
+GSM_Result_t GSM_INFO_GetBatteryInfo(gvol GSM_t* GSM, GSM_Battery_t* bat, uint32_t blocking) {
+    __CHECK_INPUTS(bat);                                    /* Check valid data */
+    __CHECK_BUSY(GSM);                                      /* Check busy status */
+    __ACTIVE_CMD(GSM, CMD_INFO_CBC);                        /* Set active command */
+    
+    Pointers.Ptr1 = bat;
     
     __RETURN_BLOCKING(GSM, blocking, 1000);                 /* Return with blocking support */
 }
@@ -3108,6 +3299,16 @@ GSM_Result_t GSM_GPRS_Detach(gvol GSM_t* GSM, uint32_t blocking) {
     __ACTIVE_CMD(GSM, CMD_GPRS_DETACH);                     /* Set active command */
     
     __RETURN_BLOCKING(GSM, blocking, 1000);                 /* Return with blocking support */
+}
+
+GSM_Result_t GSM_GPRS_GetLocationAndTime(gvol GSM_t* GSM, GSM_GPS_t* GPS, uint32_t blocking) {
+    __CHECK_INPUTS(GPS);                                    /* Check valid data */
+    __CHECK_BUSY(GSM);                                      /* Check busy status */
+    __ACTIVE_CMD(GSM, CMD_GPRS_CIPGSMLOC);                  /* Set active command */
+     
+    Pointers.Ptr1 = GPS;
+    
+    __RETURN_BLOCKING(GSM, blocking, 30000);                /* Return with blocking support */
 }
 
 /******************************************************************************/
