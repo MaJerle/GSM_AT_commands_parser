@@ -422,13 +422,41 @@ typedef struct _GSM_Battery_t {
 } GSM_Battery_t;
 
 /**
+ * \brief  Network operator selection mode
+ */
+typedef enum _GSM_OperatorMode_t {
+    GSM_OperatorMode_Auto = 0x00,                           /*!< Automatic network selection */
+    GSM_OperatorMode_Manual = 0x01,                         /*!< Manual network selection */
+    GSM_OperatorMode_ManualAuto = 0x04,                     /*!< Manual first, if it fails, use automatic */
+} GSM_OperatorMode_t;
+
+/**
+ * \brief  Network operator reading mode
+ */
+typedef enum _GSM_OperatorFormat_t {
+    GSM_OperatorFormat_LongName = 0x00,                     /*!< Operator name in long alphanumeric format */
+    GSM_OperatorFormat_ShortName = 0x01,                    /*!< Operator name in short alphanumeric format */ 
+    GSM_OperatorFormat_Number = 0x02                        /*!< Operator name in number format */
+} GSM_OperatorFormat_t;
+
+/**
+ * \brief  Network operator status
+ */
+typedef enum _GSM_OperatorStatus_t {
+    GSM_OperatorStatus_Unknown = 0x00,                      /*!< Operator network status is unknown */
+    GSM_OperatorStatus_Available = 0x01,                    /*!< Operator network is available to use */
+    GSM_OperatorStatus_Current = 0x02,                      /*!< Operator network is currently in use */
+    GSM_OperatorStatus_Forbidden = 0x03                     /*!< Operator network is forbidden to connect */
+} GSM_OperatorStatus_t;
+
+/**
  * \brief  Network operator structure
  */
 typedef struct _GSM_OP_t {
-	uint8_t Index;
-	char LongName[20];
-	char ShortName[20];
-	char Num[10];
+	GSM_OperatorStatus_t Status;                            /*!< Network status */
+	char LongName[20];                                      /*!< Network long name */
+	char ShortName[20];                                     /*!< Network short name */
+	char Number[10];                                        /*!< Network number format name */
 } GSM_OP_t;
 
 /**
@@ -764,7 +792,7 @@ GSM_Result_t GSM_INFO_GetSerialNumber(gvol GSM_t* GSM, char* str, uint32_t lengt
 
 /**
  * \brief  Get AT software info on GSM device
- * \param  *ESP: Pointer to working \ref GSM_t structure
+ * \param  *GSM: Pointer to working \ref GSM_t structure
  * \param  *rev: Pointer to array of string to save revision version.
  *               Length of array should be at least 30 bytes but mostly depends on actual ESP8266 AT software.
  *               Use NULL if you don't need revision version
@@ -775,7 +803,7 @@ GSM_Result_t GSM_INFO_GetSoftwareInfo(gvol GSM_t* GSM, char* rev, uint32_t block
 
 /**
  * \brief  Get battery status informations
- * \param  *ESP: Pointer to working \ref GSM_t structure
+ * \param  *GSM: Pointer to working \ref GSM_t structure
  * \param  *bat: Pointer to empty \ref GSM_Battery_t structure to save response
  * \param  blocking: Status whether this function should be blocking to check for response
  * \retval Member of \ref ESP_Result_t enumeration
@@ -794,7 +822,7 @@ GSM_Result_t GSM_INFO_GetBatteryInfo(gvol GSM_t* GSM, GSM_Battery_t* bat, uint32
 
 /**
  * \brief  Scan for network operators
- * \param  *ESP: Pointer to working \ref GSM_t structure
+ * \param  *GSM: Pointer to working \ref GSM_t structure
  * \param  *ops: Pointer to empty array of \ref GSM_OP_t structures to save received data
  * \param  *optr: Length of ops array
  * \param  *opr: Pointer to save number of detected network operators in array
@@ -802,6 +830,33 @@ GSM_Result_t GSM_INFO_GetBatteryInfo(gvol GSM_t* GSM, GSM_Battery_t* bat, uint32
  * \retval Member of \ref ESP_Result_t enumeration
  */
 GSM_Result_t GSM_OP_Scan(gvol GSM_t* GSM, GSM_OP_t* ops, uint16_t optr, uint16_t* opr, uint32_t blocking);
+
+/**
+ * \brief  Get current operator and type of connection
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *mode: Pointer to empty \ref GSM_OperatorMode_t enumeration store operator connection mode.
+ *            Set to NULL if value is not relevant for usage
+ * \param  *format: Pointer to empty \ref GSM_OperatorFormat_t enumeration store operator name format.
+ *            Set to NULL if value is not relevant for usage
+ * \param  *name: Pointer to string to save current operator name.
+ *            Set to NULL if value is not relevant for usage
+ *         When name is empty, device is not connected to network.
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref ESP_Result_t enumeration
+ */
+GSM_Result_t GSM_OP_Get(gvol GSM_t* GSM, GSM_OperatorMode_t* mode, GSM_OperatorFormat_t* format, char* name, uint32_t blocking);
+
+/**
+ * \brief  Set current operator and type of connection
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  mode: Module connection mode to network. This parameter can be a value of \ref GSM_OperatorMode_t enumeration.
+ *            When automatic mode is used, only this parameter is required
+ * \param  format: Format of network name. This parameter can be a value of \ref GSM_OperatorFormat_t enumeration
+ * \param  *name: Pointer to network name. Name must be in the same format as used in format parameter
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref ESP_Result_t enumeration
+ */
+GSM_Result_t GSM_OP_Set(gvol GSM_t* GSM, GSM_OperatorMode_t mode, GSM_OperatorFormat_t format, char* name, uint32_t blocking);
 
 /**
  * \}
