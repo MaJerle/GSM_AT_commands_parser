@@ -2877,7 +2877,7 @@ GSM_Result_t GSM_Init(gvol GSM_t* G, const char* pin, uint32_t Baudrate, GSM_Eve
         i--;
     }
     while (i) {
-        __ACTIVE_CMD(GSM, CMD_GEN_ATE1);                    /* Disable ECHO */
+        __ACTIVE_CMD(GSM, CMD_GEN_ATE0);                    /* Disable ECHO */
         GSM_WaitReady(GSM, 1000);
         if (GSM->ActiveResult == gsmOK) {
             break;
