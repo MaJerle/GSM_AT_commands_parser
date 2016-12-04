@@ -79,6 +79,9 @@ typedef struct {
 #define CMD_GEN_AT                          ((uint16_t)0x0005)
 #define CMD_GEN_ATE0                        ((uint16_t)0x0006)
 #define CMD_GEN_ATE1                        ((uint16_t)0x0007)
+#define CMD_GEN_CFUN                        ((uint16_t)0x0008)
+#define CMD_GEN_CFUN_SET                    ((uint16_t)0x0009)
+#define CMD_GEN_CFUN_GET                    ((uint16_t)0x000A)
 #define CMD_IS_ACTIVE_GENERAL(p)            ((p)->ActiveCmd >= 0x0001 && (p)->ActiveCmd < 0x0100)
 
 #define CMD_PIN                             ((uint16_t)0x0101)
@@ -189,6 +192,11 @@ typedef struct {
 #define CMD_GPRS_CIPSSL                     ((uint16_t)0x0744)
 #define CMD_GPRS_CIPGSMLOC                  ((uint16_t)0x0745)
 #define CMD_IS_ACTIVE_GPRS(p)               ((p)->ActiveCmd >= 0x0700 && (p)->ActiveCmd < 0x0800)
+
+#define CMD_OP_SCAN                         ((uint16_t)0x0800)
+#define CMD_OP_COPS_SCAN                    ((uint16_t)0x0820)
+#define CMD_OP_COPS_READ                    ((uint16_t)0x0821)
+#define CMD_IS_ACTIVE_OP(p)                 ((p)->ActiveCmd >= 0x0800 && (p)->ActiveCmd < 0x0900)
 
 #define __DEBUG(fmt, ...)                   printf(fmt, ##__VA_ARGS__)
 
@@ -310,11 +318,12 @@ gstatic Pointers_t Pointers;                                /* Pointers object *
 gstatic gvol GSM_t* GSM;                                    /* Working pointer to GSM_t structure */
 
 gstatic
-struct pt pt_GEN, pt_INFO, pt_PIN, pt_CALL, pt_SMS, pt_PB, pt_DATETIME, pt_GPRS;
+struct pt pt_GEN, pt_INFO, pt_PIN, pt_CALL, pt_SMS, pt_PB, pt_DATETIME, pt_GPRS, pt_OP;
 
 #define __RESET_THREADS(GSM) do {                                           \
 PT_INIT(&pt_GEN); PT_INIT(&pt_INFO); PT_INIT(&pt_PIN); PT_INIT(&pt_CALL);   \
 PT_INIT(&pt_SMS); PT_INIT(&pt_PB); PT_INIT(&pt_DATETIME); PT_INIT(&pt_GPRS);\
+PT_INIT(&pt_OP);                                                            \
 } while (0)
 
 /******************************************************************************/
@@ -463,6 +472,7 @@ void ParseCMGR(gvol GSM_t* GSM, GSM_SMS_Entry_t* sms, const char* str) {
         token = strtok_r(NULL, ",", &saveptr);
     }
 }
+
 /* Parses +CMGL response for reading SMS data */
 gstatic
 void ParseCMGL(gvol GSM_t* GSM, GSM_SMS_Entry_t* sms, const char* str) {
@@ -472,6 +482,7 @@ void ParseCMGL(gvol GSM_t* GSM, GSM_SMS_Entry_t* sms, const char* str) {
     str += cnt + 1;                                         /* Remove offset + comma */
     ParseCMGR(GSM, sms, str);                               /* From here, +CMGL is the same as +CMGR so use the same function as used in +CMGR response */
 }
+
 /* Parses +CLCC statement */
 gstatic
 void ParseCLCC(gvol GSM_t* GSM, gvol GSM_CallInfo_t* CallInfo, const char* str) {
@@ -517,6 +528,7 @@ void ParseCLCC(gvol GSM_t* GSM, gvol GSM_CallInfo_t* CallInfo, const char* str) 
         CallInfo->Name[cnt] = 0;
     }
 }
+
 /* Parses +CMTI statement */
 gstatic
 void ParseCMTI(gvol GSM_t* GSM, gvol GSM_SmsInfo_t* SmsInfo, const char* str) {
@@ -531,25 +543,35 @@ void ParseCMTI(gvol GSM_t* GSM, gvol GSM_SmsInfo_t* SmsInfo, const char* str) {
     str += 4;
     SmsInfo->Position = ParseNumber(str, NULL);
 }
+
 /* Parses +CPIN statement */
 gstatic 
-void ParseCPIN(gvol GSM_t* GSM, char* str) {
+void ParseCPIN(gvol GSM_t* GSM, GSM_CPIN_t* cpin, char* str) {
     if (strcmp(str, FROMMEM("READY\r\n")) == 0) {
-        GSM->CPIN = GSM_CPIN_Ready;
+        *cpin = GSM_CPIN_Ready;
     } else if (strcmp(str, FROMMEM("SIM PIN\r\n")) == 0) {
-        GSM->CPIN = GSM_CPIN_SIM_PIN;
+        *cpin = GSM_CPIN_SIM_PIN;
     } else if (strcmp(str, FROMMEM("SIM PUK\r\n")) == 0) {
-        GSM->CPIN = GSM_CPIN_SIM_PUK;
+        *cpin = GSM_CPIN_SIM_PUK;
     } else if (strcmp(str, FROMMEM("SIM PIN2\r\n")) == 0) {
-        GSM->CPIN = GSM_CPIN_SIM_PIN2;
+        *cpin = GSM_CPIN_SIM_PIN2;
     } else if (strcmp(str, FROMMEM("SIM PUK2\r\n")) == 0) {
-        GSM->CPIN = GSM_CPIN_SIM_PUK2;
+        *cpin = GSM_CPIN_SIM_PUK2;
     } else if (strcmp(str, FROMMEM("PH_SIM PIN\r\n")) == 0) {
-        GSM->CPIN = GSM_CPIN_PH_SIM_PIN;
+        *cpin = GSM_CPIN_PH_SIM_PIN;
     } else if (strcmp(str, FROMMEM("PH_SIM PUK\r\n")) == 0) {
-        GSM->CPIN = GSM_CPIN_PH_SIM_PUK;
+        *cpin = GSM_CPIN_PH_SIM_PUK;
+    } else {
+        *cpin = GSM_CPIN_Unknown;
     }
 }
+
+/* Parses +CFUN statement */
+gstatic 
+void ParseCFUN(gvol GSM_t* GSM, GSM_Func_t* func, char* str) {
+    *func = (GSM_Func_t)ParseNumber(str, NULL);
+}
+
 /* Parses +CPBR statement */
 gstatic
 void ParseCPBR(gvol GSM_t* GSM, GSM_PB_Entry_t* entry, const char* str) {
@@ -588,6 +610,7 @@ void ParseCPBR(gvol GSM_t* GSM, GSM_PB_Entry_t* entry, const char* str) {
         str++;
     }
 }
+
 /* Parses IP string */
 gstatic
 void ParseIP(gvol GSM_t* GSM, uint8_t* ip, const char* str) {
@@ -600,6 +623,7 @@ void ParseIP(gvol GSM_t* GSM, uint8_t* ip, const char* str) {
     str += cnt + 1;
     *ip++ = ParseNumber(str, &cnt);
 }
+
 /* Parses IP string */
 gstatic
 void ParseCREG(gvol GSM_t* GSM, char* str) {
@@ -609,6 +633,7 @@ void ParseCREG(gvol GSM_t* GSM, char* str) {
         GSM->NetworkStatus = (GSM_NetworkStatus_t)ParseNumber(str, NULL);
     }
 }
+
 /* Parses CIPRXGET statement */
 gstatic 
 void ParseCIPRXGET(gvol GSM_t* GSM, GSM_CONN_t* conn, const char* str) {
@@ -737,6 +762,87 @@ void ParseCBC(gvol GSM_t* GSM, GSM_Battery_t* bat, const char* str) {
     bat->Percentage = ParseNumber(str, &cnt);               /* Read battery percentage */
     str += cnt + 1;
     bat->Voltage = ParseNumber(str, &cnt);                  /* Read battery voltage */
+}
+
+/* Parse char by char into logical structure */
+static 
+void ParseCOPSSCAN(gvol GSM_t* GSM, char ch, uint8_t first) {
+    typedef struct U {
+        union {
+            struct {
+                uint8_t BracketOpen : 1;                    /* Is bracket open? */
+                uint8_t CommaCommaDetected : 1;             /* 2 Commas detected */
+                uint8_t TermNum : 2;                        /* 2 bits for 4 different terms */
+                uint8_t TermPos : 5;                        /* 5 bits for term position on number */
+            } F;
+            uint16_t Val;
+        } Flags;
+    } U_t;
+    static U_t u;
+    static char prev_ch = 0x00;
+    GSM_OP_t* op = (GSM_OP_t *)Pointers.Ptr1;
+
+    if (first) {                                            /* Check for first function call */                                 
+        memset((void *)&u, 0x00, sizeof(U_t));
+        if (Pointers.UI) {                                  /* Any valid structure */
+            memset((void *)op, 0x00, sizeof(GSM_OP_t));     /* Reset structure pointer */
+        }
+    }
+
+    if (u.Flags.F.CommaCommaDetected || 
+        Pointers.UI == 0 ||
+        *(uint16_t *)Pointers.Ptr2 >= Pointers.UI) {        /* Check valid valls */
+        return;
+    }
+
+    if (u.Flags.F.BracketOpen) {                            /* When we are inside one operator */
+        if (ch == ')') {
+            u.Flags.F.BracketOpen = 0;
+            *(uint16_t *)Pointers.Ptr2 = (*(uint16_t *)Pointers.Ptr2) + 1;  /* Increase number of read operators so far */
+
+            /* Start new term here! */
+            if (*(uint16_t *)Pointers.Ptr2 < Pointers.UI) { /* Check if empty memory available */
+                Pointers.Ptr1 = ((GSM_OP_t *)Pointers.Ptr1) + 1;    /* Go to next GSM OP structure */
+                memset((void *)Pointers.Ptr1, 0x00, sizeof(GSM_OP_t));  /* Reset structure */
+
+                /* Reset numbers */
+                u.Flags.F.TermNum = 0;                      /* Reset term number inside operator */
+                u.Flags.F.TermPos = 0;                      /* Reset term position in term number */
+            }
+        } else if (ch == ',') {
+            u.Flags.F.TermNum++;                            /* Go to next term */
+            u.Flags.F.TermPos = 0;                          /* Reset term position */
+        } else if (*(uint16_t *)Pointers.Ptr2 < Pointers.UI) {
+            if (ch != '"') {
+                switch (u.Flags.F.TermNum) {
+                    case 0:
+                        op->Index = 10 * op->Index + (ch - '0');
+                        break;
+                    case 1:
+                        op->LongName[u.Flags.F.TermPos++] = ch;
+                        break;
+                    case 2:
+                        op->ShortName[u.Flags.F.TermPos++] = ch;
+                        break;
+                    case 3:
+                        op->Num[u.Flags.F.TermPos++] = ch;
+                        break;
+                    default:
+                        break;
+                }
+            }
+            
+        }
+    } else {
+        if (ch == '(') {
+            u.Flags.F.BracketOpen = 1;
+        } else if (ch == ',') {
+            if (prev_ch == ',') {
+                u.Flags.F.CommaCommaDetected = 1;           /* We have detected 2 commas in series */
+            }
+        }
+    }
+    prev_ch = ch;
 }
 
 /* Processes received string from module */
@@ -903,9 +1009,14 @@ void ParseReceived(gvol GSM_t* GSM, Received_t* Received) {
         }
         
         /* Below statements can be received even if no command active */
-        if (strncmp(str, FROMMEM("+CPIN:"), 6) == 0) {            /* For SIM status response */
-            ParseCPIN(GSM, str + 7);                        /* Parse +CPIN statement */
-        } else if (strncmp(str, FROMMEM("+CLCC:"), 6) == 0) {     /* Call informations changes */
+        if (strncmp(str, FROMMEM("+CPIN:"), 6) == 0) {      /* For SIM status response */
+            ParseCPIN(GSM, (GSM_CPIN_t *)&GSM->CPIN, str + 7);  /* Parse +CPIN statement */
+        } else if (strncmp(str, FROMMEM("+CFUN"), 5) == 0) {/* Phone functionality */
+            ParseCFUN(GSM, (GSM_Func_t *)&GSM->Func, str + 7);  /* Parse CFUN response */
+            if (Pointers.Ptr1) {                            /* When command executed */
+                *(GSM_Func_t *)Pointers.Ptr1 = GSM->Func;   /* Copy value */
+            }
+        } else if (strncmp(str, FROMMEM("+CLCC:"), 6) == 0) {   /* Call informations changes */
             ParseCLCC(GSM, &GSM->CallInfo, str + 7);        /* Parse +CLCC statement */
             GSM->Flags.F.CALL_CLCC_Received = 1;            /* Set flag for callback */
         } else if (strncmp(str, FROMMEM("+CMTI:"), 6) == 0) {
@@ -1010,6 +1121,7 @@ void NumberToString(char* str, uint32_t number) {
 /******************************************************************************/
 gstatic
 PT_THREAD(PT_Thread_GEN(struct pt* pt, gvol GSM_t* GSM)) {
+    char str[6];
     PT_BEGIN(pt);                                           /* Begin thread */
     
     if (GSM->ActiveCmd == CMD_GEN_AT) {                     /* Check AT */
@@ -1089,6 +1201,37 @@ PT_THREAD(PT_Thread_GEN(struct pt* pt, gvol GSM_t* GSM)) {
         
         GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
         __IDLE(GSM);
+    } else if (GSM->ActiveCmd == CMD_GEN_CFUN_SET) {        /* Set phone functionality */
+        __RST_EVENTS_RESP(GSM);                             /* Reset events */
+        NumberToString(str, Pointers.UI);                   /* Go to string */
+        UART_SEND_STR(FROMMEM("AT+CFUN="));                 /* Send command */
+        UART_SEND_STR(FROMMEM(str));
+        UART_SEND_STR(FROMMEM(GSM_CRLF));
+        StartCommand(GSM, CMD_GEN_CFUN, NULL);              /* Start command */
+        
+        PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
+                            GSM->Events.F.RespError);       /* Wait for response */
+        
+        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
+        
+        if (GSM->ActiveResult == gsmOK) {                   /* Check for success */
+            GSM->Func = (GSM_Func_t)Pointers.UI;            /* Update new value */
+        }
+
+        __IDLE(GSM);                                        /* Go IDLE state */
+    } else if (GSM->ActiveCmd == CMD_GEN_CFUN_GET) {        /* Get phone functionality */
+        __RST_EVENTS_RESP(GSM);                             /* Reset events */
+        NumberToString(str, Pointers.UI);                   /* Go to string */
+        UART_SEND_STR(FROMMEM("AT+CFUN?"));                 /* Send command */
+        UART_SEND_STR(FROMMEM(GSM_CRLF));
+        StartCommand(GSM, CMD_GEN_CFUN, NULL);              /* Start command */
+        
+        PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
+                            GSM->Events.F.RespError);       /* Wait for response */
+        
+        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
+
+        __IDLE(GSM);                                        /* Go IDLE state */
     }
     PT_END(pt);                                             /* End thread */
 }
@@ -1116,8 +1259,9 @@ PT_THREAD(PT_Thread_INFO(struct pt* pt, gvol GSM_t* GSM)) {
         
         PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
                             GSM->Events.F.RespError);       /* Wait for response */
-        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
         
+        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
+
         __IDLE(GSM);                                        /* Go IDLE state */
     } else if (GSM->ActiveCmd == CMD_INFO_CGMR) {           /* Check device revision */
         __RST_EVENTS_RESP(GSM);                             /* Reset events */
@@ -1605,6 +1749,7 @@ PT_THREAD(PT_Thread_DATETIME(struct pt* pt, gvol GSM_t* GSM)) {
     
     PT_END(pt);                                             /* End thread */
 }
+
 gstatic
 PT_THREAD(PT_Thread_GPRS(struct pt* pt, gvol GSM_t* GSM)) {
     char str[7], ch;
@@ -2570,6 +2715,30 @@ cmd_gprs_ftpupbegin_clean:                                  /* Clean everything 
     PT_END(pt);                                             /* End thread */
 }
 
+gstatic
+PT_THREAD(PT_Thread_OP(struct pt* pt, gvol GSM_t* GSM)) {
+    PT_BEGIN(pt);
+    
+    if (GSM->ActiveCmd == CMD_OP_SCAN) {                    /* Scan for networks */
+        __CMD_SAVE(GSM);                                    /* Save command */
+        
+        __RST_EVENTS_RESP(GSM);                             /* Reset events */
+        UART_SEND_STR(FROMMEM("AT+COPS=?"));                /* Send command */
+        UART_SEND_STR(GSM_CRLF);
+        StartCommand(GSM, CMD_OP_COPS_SCAN, NULL);          /* Start command */
+        
+        PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
+                            GSM->Events.F.RespError);       /* Wait for response */
+        
+        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
+        
+        __CMD_RESTORE(GSM);                                 /* Restore command */
+        __IDLE(GSM);                                        /* Go IDLE mode */
+    }
+    
+    PT_END(pt);
+}
+
 /* Process all thread calls */
 GSM_Result_t ProcessThreads(gvol GSM_t* GSM) {
     if (CMD_IS_ACTIVE_GENERAL(GSM)) {                       /* General related commands */
@@ -2595,6 +2764,9 @@ GSM_Result_t ProcessThreads(gvol GSM_t* GSM) {
     }
     if (CMD_IS_ACTIVE_GPRS(GSM)) {                          /* On active GPRS related command */
         PT_Thread_GPRS(&pt_GPRS, GSM);
+    }
+    if (CMD_IS_ACTIVE_OP(GSM)) {                            /* On active network operator related commands */
+        PT_Thread_OP(&pt_OP, GSM);                       
     }
 #if !GSM_RTOS && !GSM_ASYNC
     GSM_ProcessCallbacks(GSM);                              /* Process callbacks when not in RTOS or ASYNC mode */
@@ -2652,6 +2824,7 @@ GSM_Result_t GSM_Init(gvol GSM_t* G, const char* pin, uint32_t Baudrate, GSM_Eve
     /* Send initialization commands */
     GSM->Flags.F.IsBlocking = 1;                            /* Process blocking calls */
     GSM->ActiveCmdTimeout = 1000;                           /* Give 1 second timeout */
+    memset((void *)&Pointers, 0x00, sizeof(Pointers));      /* Reset structure */
     while (i) {
         __ACTIVE_CMD(GSM, CMD_GEN_AT);                      /* Restore to factory settings */
         GSM_WaitReady(GSM, 1000);
@@ -2701,7 +2874,6 @@ GSM_Result_t GSM_Init(gvol GSM_t* G, const char* pin, uint32_t Baudrate, GSM_Eve
         if (GSM->ActiveResult == gsmOK) {
             break;
         }
-        GSM_Delay(GSM, 100);
         i--;
     }
     while (i) {
@@ -2710,7 +2882,14 @@ GSM_Result_t GSM_Init(gvol GSM_t* G, const char* pin, uint32_t Baudrate, GSM_Eve
         if (GSM->ActiveResult == gsmOK) {
             break;
         }
-        GSM_Delay(GSM, 100);
+        i--;
+    }  
+    while (i) {
+        __ACTIVE_CMD(GSM, CMD_GEN_CFUN_GET);                /* Get phone functionality */
+        GSM_WaitReady(GSM, 1000);
+        if (GSM->ActiveResult == gsmOK) {
+            break;
+        }
         i--;
     }    
     GSM->Flags.F.IsBlocking = 0;                            /* Reset blocking calls */
@@ -2819,18 +2998,30 @@ GSM_Result_t GSM_Update(gvol GSM_t* GSM) {
                 GSM->Flags.F.SMS_Read_Data = 0;             /* Clear flag, no more reading data */
                 processedCount = 0;                         /* Stop further processing */
             }
+        } else if (GSM->Flags.F.COPS_Read_Operators) {
+            if (ch == '\n') {
+                GSM->Flags.F.COPS_Read_Operators = 0;       /* Reset reading structure */ 
+            } else {
+                ParseCOPSSCAN(GSM, ch, ch == ':');          /* Parse COPS scan characters */
+            }
         } else {
             switch (ch) {
                 case '\n':
                     RECEIVED_ADD(ch);                       /* Add character */
                     ParseReceived(GSM, &Received);          /* Parse received string */
-                    RECEIVED_RESET();
+                    RECEIVED_RESET();                       /* Reset received array */
                     break;
                 default: 
                     if (ch == ' ' && prev1_ch == '>' && prev2_ch == '\n') { /* Check if bracket received */
                         GSM->Events.F.RespBracket = 1;      /* We receive bracket on command */
                     }
                     RECEIVED_ADD(ch);                       /* Add character to buffer */
+                    if (GSM->ActiveCmd == CMD_OP_COPS_SCAN) {   /* In case of scan network operators */
+                        if (RECEIVED_LENGTH() == 5 && Received.Data[0] == '+' && strncmp((char *)Received.Data, "+COPS", 5) == 0) {
+                            GSM->Flags.F.COPS_Read_Operators = 1;   /* Set COPS scan reading flag */
+                            RECEIVED_RESET();               /* Reset received string */
+                        }
+                    }
                 break;
             }
         }
@@ -2914,6 +3105,28 @@ uint32_t GSM_DataReceived(uint8_t* ch, uint32_t count) {
 }
 
 /******************************************************************************/
+/***                         PHONE FUNCTIONALITY API                         **/
+/******************************************************************************/
+GSM_Result_t GSM_FUNC_Set(gvol GSM_t* GSM, GSM_Func_t func, uint32_t blocking) {
+    __CHECK_BUSY(GSM);                                      /* Check busy status */
+    __ACTIVE_CMD(GSM, CMD_GEN_CFUN_SET);                    /* Set active command */
+    
+    Pointers.UI = func;
+    
+    __RETURN_BLOCKING(GSM, blocking, 1000);                 /* Return with blocking support */
+}
+
+GSM_Result_t GSM_FUNC_Get(gvol GSM_t* GSM, GSM_Func_t* func, uint32_t blocking) {
+    __CHECK_INPUTS(func);                                   /* Check valid data */
+    __CHECK_BUSY(GSM);                                      /* Check busy status */
+    __ACTIVE_CMD(GSM, CMD_GEN_CFUN_GET);                    /* Set active command */
+    
+    Pointers.Ptr1 = func;
+    
+    __RETURN_BLOCKING(GSM, blocking, 1000);                 /* Return with blocking support */
+}
+
+/******************************************************************************/
 /***                                INFO API                                 **/
 /******************************************************************************/
 GSM_Result_t GSM_INFO_GetManufacturer(gvol GSM_t* GSM, char* str, uint32_t length, uint32_t blocking) {
@@ -2974,6 +3187,22 @@ GSM_Result_t GSM_INFO_GetBatteryInfo(gvol GSM_t* GSM, GSM_Battery_t* bat, uint32
     Pointers.Ptr1 = bat;
     
     __RETURN_BLOCKING(GSM, blocking, 1000);                 /* Return with blocking support */
+}
+
+/******************************************************************************/
+/***                           NETWORK OPERATOR API                          **/
+/******************************************************************************/
+GSM_Result_t GSM_OP_Scan(gvol GSM_t* GSM, GSM_OP_t* ops, uint16_t optr, uint16_t* opr, uint32_t blocking) {
+    __CHECK_INPUTS(ops && optr && opr);                     /* Check valid data */
+    __CHECK_BUSY(GSM);                                      /* Check busy status */
+    __ACTIVE_CMD(GSM, CMD_OP_SCAN);                         /* Set active command */
+    
+    Pointers.Ptr1 = ops;
+    Pointers.Ptr2 = opr;
+    Pointers.UI = optr;
+    *opr = 0;
+    
+    __RETURN_BLOCKING(GSM, blocking, 60000);                 /* Return with blocking support */
 }
 
 /******************************************************************************/

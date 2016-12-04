@@ -422,6 +422,25 @@ typedef struct _GSM_Battery_t {
 } GSM_Battery_t;
 
 /**
+ * \brief  Network operator structure
+ */
+typedef struct _GSM_OP_t {
+	uint8_t Index;
+	char LongName[20];
+	char ShortName[20];
+	char Num[10];
+} GSM_OP_t;
+
+/**
+ * \brief  Phone functionality
+ */
+typedef enum _GSM_Func_t {
+    GSM_Func_Min = 0x00,                                    /*!< Minimal phone functionality */
+    GSM_Func_Full = 0x01,                                   /*!< Full phone functionality */
+    GSM_Func_Disable = 0x04                                 /*!< RF circuit disabled, airplane mode */
+} GSM_Func_t;
+
+/**
  * \brief  Event enumeration for callback
  */
 typedef enum {
@@ -480,8 +499,11 @@ typedef struct _GSM_t {
     /*!< Call management */
     GSM_CallInfo_t CallInfo;                                /*!< Call info object */
     
-    /*!< Pin checks */
+    /*!< SIM status */
     GSM_CPIN_t CPIN;                                        /*!< SIM status */
+    
+    /*!< Phone functionality */
+    GSM_Func_t Func;                                        /*!< Phone functionality */
     
     /*!< Network options */
     uint8_t IP[4];                                          /*!< Device IP address when connected to network */
@@ -533,6 +555,8 @@ typedef struct _GSM_t {
             
             uint8_t Call_UV_Warn:1;                         /*!< Set to 1 when undervoltage warning received */
             uint8_t Call_UV_PD:1;                           /*!< Set to 1 when undervoltage power down received */
+            
+            uint8_t COPS_Read_Operators:1;                  /*!< Set to 1 when we should process incoming COPS data to read networks from scan */
             
             uint8_t LastOperationStatus:1;
         } F;
@@ -665,6 +689,34 @@ GSM_Result_t GSM_IsReady(gvol GSM_t* GSM);
 uint32_t GSM_DataReceived(uint8_t* ch, uint32_t count);
 
 /**
+ * \defgroup FUNC_API
+ * \brief    Phone functionality related functions
+ * \{
+ */
+
+/**
+ * \brief  Sets phone functionality
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  func: Phone functionality selection. This parameter can be a value of \ref GSM_Func_t enumeration
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
+GSM_Result_t GSM_FUNC_Set(gvol GSM_t* GSM, GSM_Func_t func, uint32_t blocking);
+
+/**
+ * \brief  Gets phone functionality
+ * \param  *GSM: Pointer to working \ref GSM_t structure
+ * \param  *func: Pointer to \ref GSM_Func_t enumeration to save data to
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref GSM_Result_t enumeration
+ */
+GSM_Result_t GSM_FUNC_Get(gvol GSM_t* GSM, GSM_Func_t* func, uint32_t blocking);
+ 
+/**
+ * \}
+ */
+ 
+/**
  * \defgroup INFO_API
  * \brief    Informations based functions
  * \{
@@ -724,11 +776,32 @@ GSM_Result_t GSM_INFO_GetSoftwareInfo(gvol GSM_t* GSM, char* rev, uint32_t block
 /**
  * \brief  Get battery status informations
  * \param  *ESP: Pointer to working \ref GSM_t structure
- * \parma  *bat: Pointer to empty \ref GSM_Battery_t structure to save response
+ * \param  *bat: Pointer to empty \ref GSM_Battery_t structure to save response
  * \param  blocking: Status whether this function should be blocking to check for response
  * \retval Member of \ref ESP_Result_t enumeration
  */
 GSM_Result_t GSM_INFO_GetBatteryInfo(gvol GSM_t* GSM, GSM_Battery_t* bat, uint32_t blocking);
+
+/**
+ * \}
+ */
+
+/**
+ * \defgroup OPERATOR_API
+ * \brief    Network operator based functions
+ * \{
+ */
+
+/**
+ * \brief  Scan for network operators
+ * \param  *ESP: Pointer to working \ref GSM_t structure
+ * \param  *ops: Pointer to empty array of \ref GSM_OP_t structures to save received data
+ * \param  *optr: Length of ops array
+ * \param  *opr: Pointer to save number of detected network operators in array
+ * \param  blocking: Status whether this function should be blocking to check for response
+ * \retval Member of \ref ESP_Result_t enumeration
+ */
+GSM_Result_t GSM_OP_Scan(gvol GSM_t* GSM, GSM_OP_t* ops, uint16_t optr, uint16_t* opr, uint32_t blocking);
 
 /**
  * \}
