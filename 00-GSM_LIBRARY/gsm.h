@@ -4,7 +4,7 @@
  * \website https://majerle.eu/projects/gsm-at-commands-parser-for-embedded-systems
  * \license MIT
  * \version 0.4.0
- * \brief   GSM Library
+ * \brief          GSM Library
  *	
 \verbatim
    ----------------------------------------------------------------------
@@ -42,7 +42,7 @@ extern "C" {
 
 /**
  * \defgroup GSM
- * \brief    Platform independent, written in ANSII C, GSM AT parser library for SIMcom modules   
+ * \brief           Platform independent, written in ANSII C, GSM AT parser library for SIMcom modules   
  * \{
  */
 #include "stdlib.h"
@@ -82,12 +82,12 @@ extern "C" {
  
 /**
  * \defgroup GSM_Typedefs
- * \brief    Library Typedefs
+ * \brief           Library Typedefs
  * \{
  */
 
 /**
- * \brief  GSM library result enumeration
+ * \brief         GSM library result enumeration
  */
 typedef enum _GSM_Result_t {
     gsmOK = 0x00,                                           /*!< OK status */
@@ -106,7 +106,7 @@ typedef enum _GSM_Result_t {
 } GSM_Result_t;
 
 /**
- * \brief  Call direction enumeration
+ * \brief         Call direction enumeration
  */
 typedef enum _GSM_CallDir_t {
     GSM_CallDir_MO = 0x00,                                  /*!< Call direction is Mobile Originated */
@@ -114,7 +114,7 @@ typedef enum _GSM_CallDir_t {
 } GSM_CallDir_t;
 
 /**
- * \brief  Call type enumeration
+ * \brief         Call type enumeration
  */
 typedef enum _GSM_CallType_t {
     GSM_CallType_Voice = 0x00,                              /*!< Call type is voice */
@@ -123,7 +123,7 @@ typedef enum _GSM_CallType_t {
 } GSM_CallType_t;
 
 /**
- * \brief  Call status enumeration
+ * \brief         Call status enumeration
  */
 typedef enum _GSM_CallState_t {
     GSM_CallState_Active = 0x00,                            /*!< Call is active */
@@ -136,8 +136,8 @@ typedef enum _GSM_CallState_t {
 } GSM_CallState_t;
 
 /**
- * \brief  SMS memory enumeration
- * \note   This is currently not used and is for future purpose
+ * \brief         SMS memory enumeration
+ * \note          This is currently not used and is for future purpose
  */
 typedef enum _GSM_SMS_Memory_t {
     GSM_SMS_Memory_SM,
@@ -147,7 +147,7 @@ typedef enum _GSM_SMS_Memory_t {
 } GSM_SMS_Memory_t;
 
 /**
- * \brief  SMS mass delete enumeration
+ * \brief         SMS mass delete enumeration
  */
 typedef enum _GSM_SMS_MassDelete_t {
     GSM_SMS_MassDelete_Read = 0x00,                         /*!< Delete all read SMS messages */
@@ -159,7 +159,7 @@ typedef enum _GSM_SMS_MassDelete_t {
 } GSM_SMS_MassDelete_t;
 
 /**
- * \brief  SMS read type enumeration
+ * \brief         SMS read type enumeration
  */
 typedef enum _GSM_SMS_ReadType_t {
     GSM_SMS_ReadType_ALL,                                   /*!< List all SMS entries */
@@ -168,7 +168,7 @@ typedef enum _GSM_SMS_ReadType_t {
 } GSM_SMS_ReadType_t;
 
 /**
- * \brief  SIM card informations
+ * \brief         SIM card informations
  */
 typedef enum _GSM_CPIN_t {
     GSM_CPIN_Unknown = 0x00,                                /*!< Default value */
@@ -182,7 +182,7 @@ typedef enum _GSM_CPIN_t {
 } GSM_CPIN_t;
 
 /**
- * \brief  Time structure
+ * \brief         Time structure
  */
 typedef struct _GSM_Date_t {
     uint8_t Day;                                            /*!< Day in month, from 1 to 31 */
@@ -191,7 +191,7 @@ typedef struct _GSM_Date_t {
 } GSM_Date_t;
 
 /**
- * \brief  Time structure
+ * \brief         Time structure
  */
 typedef struct _GSM_Time_t {
     uint8_t Hours;                                          /*!< Hours in format 00-24 */
@@ -200,7 +200,7 @@ typedef struct _GSM_Time_t {
 } GSM_Time_t;
 
 /**
- * \brief  Date and time structure
+ * \brief         Date and time structure
  */
 typedef struct _GSM_DateTime_t {
     GSM_Date_t Date;                                        /*!< Date data */
@@ -208,7 +208,7 @@ typedef struct _GSM_DateTime_t {
 } GSM_DateTime_t;
 
 /**
- * \brief  SMS structure for send message
+ * \brief         SMS structure for send message
  */
 typedef struct _GSM_SMS_t {
     const char* Number;                                     /*!< Pointer to constant string for number */
@@ -217,8 +217,8 @@ typedef struct _GSM_SMS_t {
 } GSM_SMS_t;
 
 /**
- * \brief  Call information structure
- * \note   Used when call status changes to notify user
+ * \brief         Call information structure
+ * \note          Used when call status changes to notify user
  */
 typedef struct _GSM_CallInfo_t {
     uint8_t ID;                                             /*!< Call identification number, 0 - 7 */
@@ -232,8 +232,8 @@ typedef struct _GSM_CallInfo_t {
 } GSM_CallInfo_t;
 
 /**
- * \brief  SMS information structure
- * \note   Used when new SMS is received to notify user
+ * \brief         SMS information structure
+ * \note          Used when new SMS is received to notify user
  */
 typedef struct _GSM_SmsInfo_t {
     GSM_SMS_Memory_t Memory;                                /*!< Memory where received SMS was saved */
@@ -249,7 +249,7 @@ typedef struct _GSM_SmsInfo_t {
 } GSM_SmsInfo_t;
 
 /**
- * \brief  SMS item
+ * \brief         SMS item
  */
 typedef struct _GSM_SMS_Entry_t {
     uint16_t Position;                                      /*!< Position number in memory */
@@ -262,7 +262,7 @@ typedef struct _GSM_SMS_Entry_t {
 } GSM_SMS_Entry_t;
 
 /**
- * \brief  Phonebook entry item
+ * \brief         Phonebook entry item
  */
 typedef struct _GSM_PB_Entry_t {
     uint16_t Index;                                         /*!< Phonebook index number */
@@ -271,7 +271,7 @@ typedef struct _GSM_PB_Entry_t {
 } GSM_PB_Entry_t;
 
 /**
- * \brief  Connection type enumeration
+ * \brief         Connection type enumeration
  */
 typedef enum _GSM_CONN_Type_t {
     GSM_CONN_Type_TCP,                                      /*!< Create TCP connection  */
@@ -279,7 +279,7 @@ typedef enum _GSM_CONN_Type_t {
 } GSM_CONN_Type_t;
 
 /**
- * \brief  Connection over SSL selection
+ * \brief         Connection over SSL selection
  */
 typedef enum _GSM_CONN_SSL_t {
     GSM_CONN_SSL_Disable = 0x00,                            /*!< Disable TCP over SSL */
@@ -287,7 +287,7 @@ typedef enum _GSM_CONN_SSL_t {
 } GSM_CONN_SSL_t;
 
 /**
- * \brief  Connection structure for GSM
+ * \brief         Connection structure for GSM
  */
 typedef struct _GSM_CONN_t {
     uint8_t ID;                                             /*!< Connection identification */
@@ -310,7 +310,7 @@ typedef struct _GSM_CONN_t {
 } GSM_CONN_t;
 
 /**
- * \brief  HTTP suppoerted request methods
+ * \brief         HTTP suppoerted request methods
  */
 typedef enum _GSM_HTTP_Method_t {
     GSM_HTTP_Method_GET = 0x00,                             /*!< HTTP method GET */
@@ -319,7 +319,7 @@ typedef enum _GSM_HTTP_Method_t {
 } GSM_HTTP_Method_t;
 
 /**
- * \brief  HTTP structure for GSM
+ * \brief         HTTP structure for GSM
  */
 typedef struct _GSM_HTTP_t {
     GSM_HTTP_Method_t Method;                               /*!< HTTP method */
@@ -335,7 +335,7 @@ typedef struct _GSM_HTTP_t {
 } GSM_HTTP_t;
 
 /**
- * \brief  HTTP over SSL selection
+ * \brief         HTTP over SSL selection
  */
 typedef enum _GSM_HTTP_SSL_t {
     GSM_HTTP_SSL_Disable = 0x00,                            /*!< Disable SSL usage for HTTP */
@@ -343,7 +343,7 @@ typedef enum _GSM_HTTP_SSL_t {
 } GSM_HTTP_SSL_t;
 
 /**
- * \brief  FTP structure for GSM
+ * \brief         FTP structure for GSM
  */
 typedef struct _GSM_FTP_t {
     uint8_t Mode;                                           /*!< FTP usage mode (execute, read) */
@@ -364,7 +364,7 @@ typedef struct _GSM_FTP_t {
 } GSM_FTP_t;
 
 /**
- * \brief  FTP connection mode
+ * \brief         FTP connection mode
  */
 typedef enum _GSM_FTP_Mode_t {
     GSM_FTP_Mode_Active = 0x00,                             /*!< Active FTP mode */
@@ -372,7 +372,7 @@ typedef enum _GSM_FTP_Mode_t {
 } GSM_FTP_Mode_t;
 
 /**
- * \brief  FTP over SSL selection
+ * \brief         FTP over SSL selection
  */
 typedef enum _GSM_FTP_SSL_t {
     GSM_FTP_SSL_Disable = 0x00,                             /*!< Do not use FTP over SSL */
@@ -381,7 +381,7 @@ typedef enum _GSM_FTP_SSL_t {
 } GSM_FTP_SSL_t;
 
 /**
- * \brief  FTP upload mode
+ * \brief         FTP upload mode
  */
 typedef enum _GSM_FTP_UploadMode_t {
     GSM_FTP_UploadMode_Append = 0x00,                       /*!< Append file already existing on server */
@@ -390,7 +390,7 @@ typedef enum _GSM_FTP_UploadMode_t {
 } GSM_FTP_UploadMode_t;
 
 /**
- * \brief  GSM network status
+ * \brief         GSM network status
  */
 typedef enum _GSM_NetworkStatus_t {
     GSM_NetworkStatus_Searching = 0x00,                     /*!< Searching for network */
@@ -402,7 +402,7 @@ typedef enum _GSM_NetworkStatus_t {
 } GSM_NetworkStatus_t;
 
 /**
- * \brief  GSM GPS location over GPRS
+ * \brief         GSM GPS location over GPRS
  */
 typedef struct _GSM_GPS_t {
     uint16_t Error;                                         /*!< Error number if exists */
@@ -413,7 +413,7 @@ typedef struct _GSM_GPS_t {
 } GSM_GPS_t;
 
 /**
- * \brief  Battery informations 
+ * \brief         Battery informations 
  */
 typedef struct _GSM_Battery_t {
     uint8_t Charging;                                       /*!< Status indicating battery is charging */
@@ -422,7 +422,7 @@ typedef struct _GSM_Battery_t {
 } GSM_Battery_t;
 
 /**
- * \brief  Network operator selection mode
+ * \brief         Network operator selection mode
  */
 typedef enum _GSM_OperatorMode_t {
     GSM_OperatorMode_Auto = 0x00,                           /*!< Automatic network selection */
@@ -431,7 +431,7 @@ typedef enum _GSM_OperatorMode_t {
 } GSM_OperatorMode_t;
 
 /**
- * \brief  Network operator reading mode
+ * \brief         Network operator reading mode
  */
 typedef enum _GSM_OperatorFormat_t {
     GSM_OperatorFormat_LongName = 0x00,                     /*!< Operator name in long alphanumeric format */
@@ -440,7 +440,7 @@ typedef enum _GSM_OperatorFormat_t {
 } GSM_OperatorFormat_t;
 
 /**
- * \brief  Network operator status
+ * \brief         Network operator status
  */
 typedef enum _GSM_OperatorStatus_t {
     GSM_OperatorStatus_Unknown = 0x00,                      /*!< Operator network status is unknown */
@@ -450,7 +450,7 @@ typedef enum _GSM_OperatorStatus_t {
 } GSM_OperatorStatus_t;
 
 /**
- * \brief  Network operator structure
+ * \brief         Network operator structure
  */
 typedef struct _GSM_OP_t {
 	GSM_OperatorStatus_t Status;                            /*!< Network status */
@@ -460,7 +460,7 @@ typedef struct _GSM_OP_t {
 } GSM_OP_t;
 
 /**
- * \brief  Phone functionality
+ * \brief         Phone functionality
  */
 typedef enum _GSM_Func_t {
     GSM_Func_Min = 0x00,                                    /*!< Minimal phone functionality */
@@ -469,7 +469,7 @@ typedef enum _GSM_Func_t {
 } GSM_Func_t;
 
 /**
- * \brief  Event enumeration for callback
+ * \brief         Event enumeration for callback
  */
 typedef enum {
     gsmEventIdle = 0x00,                                    /*!< Stack went idle */
@@ -487,7 +487,7 @@ typedef enum {
 } GSM_Event_t;
 
 /**
- * \brief  Parameters for callback processing
+ * \brief         Parameters for callback processing
  */
 typedef struct _GSM_EventParams_t {
     const void* CP1;                                        /*!< Constant void pointer number 1 */
@@ -496,12 +496,12 @@ typedef struct _GSM_EventParams_t {
 } GSM_EventParams_t;
 
 /**
- * \brief  Callback function prototype
+ * \brief         Callback function prototype
  */
 typedef int (*GSM_EventCallback_t)(GSM_Event_t, GSM_EventParams_t*);
 
 /**
- * \brief  GSM structure
+ * \brief         GSM structure
  */
 typedef struct _GSM_t {
     gvol uint32_t Time;                                     /*!< Current time in units of milliseconds */
@@ -547,7 +547,7 @@ typedef struct _GSM_t {
     
 #if GSM_RTOS
     /*!< RTOS support */
-    GSM_RTOS_SYNC_t Sync;                                     /*!< RTOS Synchronization object */
+    GSM_RTOS_SYNC_t Sync;                                   /*!< RTOS Synchronization object */
 #endif
     
     /*!< Flags management */
@@ -626,117 +626,117 @@ typedef struct _GSM_t {
  */
 
 /**
- * \defgroup GSM_Functions
- * \brief    Library Functions
+ * \defgroup      GSM_Functions
+ * \brief         Library Functions
  * \{
  */
 
 /**
- * \brief  Initializes GSM stack and prepares low-level layer and system calls when necessary
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *pin: Pointer to pin in string format to be used if SIM is inserted and not ready
- * \param  baudrate: Baudrate for UART communication
- * \param  callback: Pointer to callback function to be called on different events. 
- *          Use NULL if you don't need callback
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Initializes GSM stack and prepares low-level layer and system calls when necessary
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     *pin: Pointer to pin in string format to be used if SIM is inserted and not ready
+ * \param[in]     baudrate: Baudrate for UART communication
+ * \param[in]     callback: Pointer to callback function to be called on different events. 
+ *                   Use NULL if you don't need callback
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_Init(gvol GSM_t* GSM, const char* pin, uint32_t baudrate, GSM_EventCallback_t callback);
 
 /**
- * \brief  Checks received data and makes action according to selected action
- * \note   When in <b>RTOS</b> mode, it is recommended to use this function in separate thread only for GSM processing
+ * \brief         Checks received data and makes action according to selected action
+ * \note          When in <b>RTOS</b> mode, it is recommended to use this function in separate thread only for GSM processing
  *
- * \note   When in <b>ASYNC</b> mode only (without <b>RTOS</b>), it is recommended to use this function in 1ms interrupt handler for processing incoming data
+ * \note          When in <b>ASYNC</b> mode only (without <b>RTOS</b>), it is recommended to use this function in 1ms interrupt handler for processing incoming data
  *
- * \note   When not in <b>RTOS</b> and <b>ASYNC</b> mode, you have to call this function in main while loop as faster as possible.
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \retval Member of \ref GSM_Result_t enumeration
+ * \note          When not in <b>RTOS</b> and <b>ASYNC</b> mode, you have to call this function in main while loop as faster as possible.
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_Update(gvol GSM_t* GSM);
 
 /**
- * \brief  Checks for flags and calls callback functions for user.
- * \note   When in <b>RTOS</b> or <b>ASYNC</b> mode, user has to call this function manually. 
+ * \brief         Checks for flags and calls callback functions for user.
+ * \note          When in <b>RTOS</b> or <b>ASYNC</b> mode, user has to call this function manually. 
  
- * \note   WHen not in <b>RTOS</b> AND <b>ASYNC</b> mode, this function is called from GSM library itself and can be left by user.
+ * \note          When not in <b>RTOS</b> AND <b>ASYNC</b> mode, this function is called from GSM library itself and can be left by user.
  *
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \retval Member of \ref GSM_Result_t enumeration
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_ProcessCallbacks(gvol GSM_t* GSM);
 
 /**
- * \brief  Update time for GSM stack
- * \note   This function must be called periodically with fixed frequency
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  millis: Number of milliseconds time is increased from last function call
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Update time for GSM stack
+ * \note          This function must be called periodically with fixed frequency
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     millis: Number of milliseconds time is increased from last function call
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_UpdateTime(gvol GSM_t* GSM, uint32_t millis);
 
 /**
- * \brief  Gets last return status from stack
- * \note   Use this function in callback function to detect returned status of last operation
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Gets last return status from stack
+ * \note          Use this function in callback function to detect returned status of last operation
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_GetLastReturnStatus(gvol GSM_t* GSM);
 
 /**
- * \brief  Waits for stack to be ready inside desired milliseconds
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  timeout: Timeout to wait before returning in units of milliseconds
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Waits for stack to be ready inside desired milliseconds
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     timeout: Timeout to wait before returning in units of milliseconds
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_WaitReady(gvol GSM_t* GSM, uint32_t timeout);
 
 /**
- * \brief  Delay for specific amount of time
- * \note   When not in ASYNC or RTOS mode, this function will also update stack for amount of timeout time
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  timeout: Timeout to delay in units of milliseconds
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Delay for specific amount of time
+ * \note          When not in ASYNC or RTOS mode, this function will also update stack for amount of timeout time
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     timeout: Timeout to delay in units of milliseconds
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_Delay(gvol GSM_t* GSM, uint32_t timeout);
 
 /**
- * \brief  Checks if stack is ready
- * \note   This checks only flag in library. When working with RTOS, this function may not return actual value
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Checks if stack is ready
+ * \note          This checks only flag in library. When working with RTOS, this function may not return actual value
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_IsReady(gvol GSM_t* GSM);
 
 /**
- * \brief  Data were received from UART and should be transfered to GSM stack
- * \note   This function should be called from UART RX interrupt for further processing
- * \param  *ch: Pointer to character or array of characters
- * \param  count: Number of characters received from UART 
- * \retval Number of characters added to GSM stack
+ * \brief         Data were received from UART and should be transfered to GSM stack
+ * \note          This function should be called from UART RX interrupt for further processing
+ * \param[in]     *ch: Pointer to character or array of characters
+ * \param[in]     count: Number of characters received from UART 
+ * \retval        Number of characters added to GSM stack
  */
 uint32_t GSM_DataReceived(uint8_t* ch, uint32_t count);
 
 /**
  * \defgroup FUNC_API
- * \brief    Phone functionality related functions
+ * \brief           Phone functionality related functions
  * \{
  */
 
 /**
- * \brief  Sets phone functionality
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  func: Phone functionality selection. This parameter can be a value of \ref GSM_Func_t enumeration
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Sets phone functionality
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     func: Phone functionality selection. This parameter can be a value of \ref GSM_Func_t enumeration
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_FUNC_Set(gvol GSM_t* GSM, GSM_Func_t func, uint32_t blocking);
 
 /**
- * \brief  Gets phone functionality
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *func: Pointer to \ref GSM_Func_t enumeration to save data to
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Gets phone functionality
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[out]    *func: Pointer to \ref GSM_Func_t enumeration to save data to
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_FUNC_Get(gvol GSM_t* GSM, GSM_Func_t* func, uint32_t blocking);
  
@@ -746,67 +746,67 @@ GSM_Result_t GSM_FUNC_Get(gvol GSM_t* GSM, GSM_Func_t* func, uint32_t blocking);
  
 /**
  * \defgroup INFO_API
- * \brief    Informations based functions
+ * \brief           Informations based functions
  * \{
  */
 
 /**
- * \brief  Gets manufacturer from SIM device
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *str: Pointer to string array to save menufacturer name
- * \param  length: Length of string array
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Gets manufacturer from SIM device
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[out]    *str: Pointer to string array to save menufacturer name
+ * \param[in]     length: Length of string array
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_INFO_GetManufacturer(gvol GSM_t* GSM, char* str, uint32_t length, uint32_t blocking);
 
 /**
- * \brief  Gets model name from SIM device
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *str: Pointer to string array to save model name
- * \param  length: Length of string array
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Gets model name from SIM device
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[out]    *str: Pointer to string array to save model name
+ * \param[in]     length: Length of string array
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_INFO_GetModel(gvol GSM_t* GSM, char* str, uint32_t length, uint32_t blocking);
 
 /**
- * \brief  Gets revision from SIM device
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *str: Pointer to string array to save revision name
- * \param  length: Length of string array
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Gets revision from SIM device
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[out]    *str: Pointer to string array to save revision name
+ * \param[in]     length: Length of string array
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_INFO_GetRevision(gvol GSM_t* GSM, char* str, uint32_t length, uint32_t blocking);
 
 /**
- * \brief  Gets serial number from SIM device
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *str: Pointer to string array to save serial number
- * \param  length: Length of string array
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Gets serial number from SIM device
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[out]    *str: Pointer to string array to save serial number
+ * \param[in]     length: Length of string array
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_INFO_GetSerialNumber(gvol GSM_t* GSM, char* str, uint32_t length, uint32_t blocking);
 
 /**
- * \brief  Get AT software info on GSM device
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *rev: Pointer to array of string to save revision version.
- *               Length of array should be at least 30 bytes but mostly depends on actual ESP8266 AT software.
- *               Use NULL if you don't need revision version
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref ESP_Result_t enumeration
+ * \brief         Get AT software info on GSM device
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[out]    *rev: Pointer to array of string to save revision version.
+ *                   Length of array should be at least 30 bytes but mostly depends on actual ESP8266 AT software.
+ *                   Use NULL if you don't need revision version
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref ESP_Result_t enumeration
  */
 GSM_Result_t GSM_INFO_GetSoftwareInfo(gvol GSM_t* GSM, char* rev, uint32_t blocking);
 
 /**
- * \brief  Get battery status informations
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *bat: Pointer to empty \ref GSM_Battery_t structure to save response
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref ESP_Result_t enumeration
+ * \brief         Get battery status informations
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[out]    *bat: Pointer to empty \ref GSM_Battery_t structure to save response
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref ESP_Result_t enumeration
  */
 GSM_Result_t GSM_INFO_GetBatteryInfo(gvol GSM_t* GSM, GSM_Battery_t* bat, uint32_t blocking);
 
@@ -815,46 +815,46 @@ GSM_Result_t GSM_INFO_GetBatteryInfo(gvol GSM_t* GSM, GSM_Battery_t* bat, uint32
  */
 
 /**
- * \defgroup OPERATOR_API
- * \brief    Network operator based functions
+ * \defgroup      OPERATOR_API
+ * \brief         Network operator based functions
  * \{
  */
 
 /**
- * \brief  Scan for network operators
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *ops: Pointer to empty array of \ref GSM_OP_t structures to save received data
- * \param  *optr: Length of ops array
- * \param  *opr: Pointer to save number of detected network operators in array
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref ESP_Result_t enumeration
+ * \brief         Scan for network operators
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[out]    *ops: Pointer to empty array of \ref GSM_OP_t structures to save received data
+ * \param[in]     optr: Size of ops array in units of \ref GSM_OP_t structures
+ * \param[out]    *opr: Pointer to save number of detected network operators in array
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref ESP_Result_t enumeration
  */
 GSM_Result_t GSM_OP_Scan(gvol GSM_t* GSM, GSM_OP_t* ops, uint16_t optr, uint16_t* opr, uint32_t blocking);
 
 /**
- * \brief  Get current operator and type of connection
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *mode: Pointer to empty \ref GSM_OperatorMode_t enumeration store operator connection mode.
- *            Set to NULL if value is not relevant for usage
- * \param  *format: Pointer to empty \ref GSM_OperatorFormat_t enumeration store operator name format.
- *            Set to NULL if value is not relevant for usage
- * \param  *name: Pointer to string to save current operator name.
- *            Set to NULL if value is not relevant for usage
- *         When name is empty, device is not connected to network.
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref ESP_Result_t enumeration
+ * \brief         Get current operator and type of connection
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[out]    *mode: Pointer to empty \ref GSM_OperatorMode_t enumeration store operator connection mode.
+ *                   Set to NULL if value is not relevant for usage
+ * \param[out]    *format: Pointer to empty \ref GSM_OperatorFormat_t enumeration store operator name format.
+ *                   Set to NULL if value is not relevant for usage
+ * \param[out]    *name: Pointer to string to save current operator name.
+ *                   Set to NULL if value is not relevant for usage
+ *                   When name is empty, device is not connected to network.
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref ESP_Result_t enumeration
  */
 GSM_Result_t GSM_OP_Get(gvol GSM_t* GSM, GSM_OperatorMode_t* mode, GSM_OperatorFormat_t* format, char* name, uint32_t blocking);
 
 /**
- * \brief  Set current operator and type of connection
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  mode: Module connection mode to network. This parameter can be a value of \ref GSM_OperatorMode_t enumeration.
- *            When automatic mode is used, only this parameter is required
- * \param  format: Format of network name. This parameter can be a value of \ref GSM_OperatorFormat_t enumeration
- * \param  *name: Pointer to network name. Name must be in the same format as used in format parameter
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref ESP_Result_t enumeration
+ * \brief         Set current operator and type of connection
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     mode: Module connection mode to network. This parameter can be a value of \ref GSM_OperatorMode_t enumeration.
+ *                   When automatic mode is used, only this parameter is required
+ * \param[in]     format: Format of network name. This parameter can be a value of \ref GSM_OperatorFormat_t enumeration
+ * \param[in]     *name: Pointer to network name. Name must be in the same format as used in format parameter
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref ESP_Result_t enumeration
  */
 GSM_Result_t GSM_OP_Set(gvol GSM_t* GSM, GSM_OperatorMode_t mode, GSM_OperatorFormat_t format, char* name, uint32_t blocking);
 
@@ -864,44 +864,44 @@ GSM_Result_t GSM_OP_Set(gvol GSM_t* GSM, GSM_OperatorMode_t mode, GSM_OperatorFo
 
 /**
  * \defgroup PIN_API
- * \brief    PIN/PUK based functions
+ * \brief           PIN/PUK based functions
  * \{
  */
  
 /**
- * \brief  Enter PIN code for SIM card
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *pin: Pointer to PIN in string format
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Enter PIN code for SIM card
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     *pin: Pointer to PIN in string format
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_PIN_Enter(gvol GSM_t* GSM, const char* pin, uint32_t blocking);
 
 /**
- * \brief  Remove PIN code for SIM card
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *current_pin: Pointer to current PIN in string format
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Remove PIN code for SIM card
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     *current_pin: Pointer to current PIN in string format
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_PIN_Remove(gvol GSM_t* GSM, const char* current_pin, uint32_t blocking);
 
 /**
- * \brief  Set new PIN for SIM
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *new_pin: Pointer to new PIN in string format
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Set new PIN for SIM
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     *new_pin: Pointer to new PIN in string format
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_PIN_Add(gvol GSM_t* GSM, const char* new_pin, uint32_t blocking);
 
 /**
- * \brief  Unlock SIM by entering PUK code and new PIN
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *puk: Pointer to SIM PUK code
- * \param  *new_pin: Pointer to new PIN in string format
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Unlock SIM by entering PUK code and new PIN
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     *puk: Pointer to SIM PUK code
+ * \param[in]     *new_pin: Pointer to new PIN in string format
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_PUK_Enter(gvol GSM_t* GSM, const char* puk, const char* new_pin, uint32_t blocking);
 
@@ -911,78 +911,78 @@ GSM_Result_t GSM_PUK_Enter(gvol GSM_t* GSM, const char* puk, const char* new_pin
 
 /**
  * \defgroup CALL_API
- * \brief    CALL based functions
+ * \brief           CALL based functions
  * \{
  */
 
 /**
- * \brief  Start voice call to specific number
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *number: Pointer to number in string format
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Start voice call to specific number
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     *number: Pointer to number in string format
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_CALL_Voice(gvol GSM_t* GSM, const char* number, uint32_t blocking);
 
 /**
- * \brief  Start data call to specific number
- * \note   This options has not been actually tested yet
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *number: Pointer to number in string format
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Start data call to specific number
+ * \note          This options has not been actually tested yet
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     *number: Pointer to number in string format
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_CALL_Data(gvol GSM_t* GSM, const char* number, uint32_t blocking);
 
 /**
- * \brief  Start voice call to specific number selected from sim phonebook
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  pos: Phonebook position on SIM card
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Start voice call to specific number selected from sim phonebook
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     pos: Phonebook position on SIM card
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_CALL_VoiceFromSIMPosition(gvol GSM_t* GSM, uint16_t pos, uint32_t blocking);
 
 /**
- * \brief  Start data call to specific number selected from sim phonebook
- * \note   This options has not been actually tested yet
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  pos: Phonebook position on SIM card
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Start data call to specific number selected from sim phonebook
+ * \note          This options has not been actually tested yet
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     pos: Phonebook position on SIM card
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_CALL_DataFromSIMPosition(gvol GSM_t* GSM, uint16_t pos, uint32_t blocking);
 
 /**
- * \brief  Answer to received call
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Answer to received call
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_CALL_Answer(gvol GSM_t* GSM, uint32_t blocking);
 
 /**
- * \brief  Hang up a receiving call or finish with call
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Hang up a receiving call or finish with call
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_CALL_HangUp(gvol GSM_t* GSM, uint32_t blocking);
 
 /**
- * \brief  Get informations about current call, receive, outgoing or active
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Pointer to call info.
+ * \brief         Get informations about current call, receive, outgoing or active
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Pointer to call info.
  */
 GSM_CallInfo_t* GSM_CALL_GetInfo(gvol GSM_t* GSM, uint32_t blocking);
 
 /**
- * \brief  Clear informations about call once you are done and you don't need info anymore
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *info: Pointer to \ref GSM_CallInfo_t structure previously returned with \ref GSM_CALL_GetInfo function
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Clear informations about call once you are done and you don't need info anymore
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     *info: Pointer to \ref GSM_CallInfo_t structure previously returned with \ref GSM_CALL_GetInfo function
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_CALL_ClearInfo(gvol GSM_t* GSM, GSM_CallInfo_t* info, uint32_t blocking);
 
@@ -991,78 +991,78 @@ GSM_Result_t GSM_CALL_ClearInfo(gvol GSM_t* GSM, GSM_CallInfo_t* info, uint32_t 
  */
 
 /**
- * \defgroup SMS_API
- * \brief    SMS based functions
+ * \defgroup      SMS_API
+ * \brief         SMS based functions
  * \{
  */
 
 /**
- * \brief  Send new SMS to specific number
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *number: Phone number to send SMS to
- * \param  *data: SMS data in ASCII format
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Send new SMS to specific number
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     *number: Phone number to send SMS to
+ * \param[in]     *data: SMS data in ASCII format
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_SMS_Send(gvol GSM_t* GSM, const char* number, const char* data, uint32_t blocking);
 
 /**
- * \brief  Read SMS from specific SIM memory position
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  position: SMS position in memory.
- * \param  *SMS: Pointer to empty \ref GSM_SMS_Entry_t structure to save data to
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Read SMS from specific SIM memory position
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     position: SMS position in memory.
+ * \param[out]    *SMS: Pointer to empty \ref GSM_SMS_Entry_t structure to save data to
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_SMS_Read(gvol GSM_t* GSM, uint16_t position, GSM_SMS_Entry_t* SMS, uint32_t blocking);
 
 /**
- * \brief  List all SMS entries
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  type: SMS type to read. This parameter can be a value of \ref GSM_SMS_ReadType_t enumeration
- * \param  *entries: Pointer to array of \ref GSM_SMS_Entry_t structures
- * \param  btr: Number of entries to read. This parameter can't be greater than number of elements in entries array
- * \param  *br: Pointer to save actual SMS entries read from module
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         List all SMS entries
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     type: SMS type to read. This parameter can be a value of \ref GSM_SMS_ReadType_t enumeration
+ * \param[out]    *entries: Pointer to array of \ref GSM_SMS_Entry_t structures
+ * \param[in]     btr: Number of entries to read. This parameter can't be greater than number of elements in entries array
+ * \param[out]    *br: Pointer to save actual SMS entries read from module
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_SMS_List(gvol GSM_t* GSM, GSM_SMS_ReadType_t type, GSM_SMS_Entry_t* entries, uint16_t btr, uint16_t* br, uint32_t blocking);
 
 /**
- * \brief  Delete specific SMS at desired position
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  position: Position in memory to delete
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Delete specific SMS at desired position
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     position: Position in memory to delete
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_SMS_Delete(gvol GSM_t* GSM, uint16_t position, uint32_t blocking);
 
 /**
- * \brief  Process mass delete SMS entries
- * \note   This function may take a while so take care of using it as blocking.
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  type: Mass delete type. This parameter can be a value of \ref GSM_SMS_MassDelete_t enumeration
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Process mass delete SMS entries
+ * \note          This function may take a while so take care of using it as blocking.
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     type: Mass delete type. This parameter can be a value of \ref GSM_SMS_MassDelete_t enumeration
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_SMS_MassDelete(gvol GSM_t* GSM, GSM_SMS_MassDelete_t type, uint32_t blocking);
 
 /**
- * \brief  Get informations about received new SMS if possible
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Pointer to \ref GSM_SmsInfo_t structure with informations about received SMS or NULL if nothing received
+ * \brief         Get informations about received new SMS if possible
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Pointer to \ref GSM_SmsInfo_t structure with informations about received SMS or NULL if nothing received
  */
 GSM_SmsInfo_t* GSM_SMS_GetReceivedInfo(gvol GSM_t* GSM, uint32_t blocking);
 
 /**
- * \brief  Clear info about received SMS
- * \note   You must call this function after you process everything from \ref GSM_SMS_GetReceivedInfo function call
- *           to allow new SMS received infos to be saved again into free memory.
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *info: Pointer to previously returned pointer from \ref GSM_SMS_GetReceivedInfo function to clear and free memory
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Clear info about received SMS
+ * \note          You must call this function after you process everything from \ref GSM_SMS_GetReceivedInfo function call
+ *                   to allow new SMS received infos to be saved again into free memory.
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     *info: Pointer to previously returned pointer from \ref GSM_SMS_GetReceivedInfo function to clear and free memory
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_SMS_ClearReceivedInfo(gvol GSM_t* GSM, GSM_SmsInfo_t* info, uint32_t blocking);
 
@@ -1071,72 +1071,72 @@ GSM_Result_t GSM_SMS_ClearReceivedInfo(gvol GSM_t* GSM, GSM_SmsInfo_t* info, uin
  */
  
 /**
- * \defgroup PHONEBOOK_API
- * \brief    PHONEBOOK based functions
+ * \defgroup      PHONEBOOK_API
+ * \brief         PHONEBOOK based functions
  * \{
  */
  
 /**
- * \brief  Add new entry to phonebook
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *name: Pointer to new phonebook entry name
- * \param  *number: Pointer to entry call number in string format
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Add new entry to phonebook
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     *name: Pointer to new phonebook entry name
+ * \param[in]     *number: Pointer to entry call number in string format
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_PB_Add(gvol GSM_t* GSM, const char* name, const char* number, uint32_t blocking);
 
 /**
- * \brief  Edit phonebook entry
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  index: Index position for entry in phonebook
- * \param  *name: Pointer to new phonebook entry name
- * \param  *number: Pointer to entry call number in string format
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Edit phonebook entry
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     index: Index position for entry in phonebook
+ * \param[in]     *name: Pointer to new phonebook entry name
+ * \param[in]     *number: Pointer to entry call number in string format
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_PB_Edit(gvol GSM_t* GSM, uint32_t index, const char* name, const char* number, uint32_t blocking);
 
 /**
- * \brief  Delete phonebook entry
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  index: Index position for entry in phonebook to delete
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Delete phonebook entry
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     index: Index position for entry in phonebook to delete
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_PB_Delete(gvol GSM_t* GSM, uint32_t index, uint32_t blocking);
 
 /**
- * \brief  Read phonebook entry
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *entry: Pointer to empty \ref GSM_PB_Entry_t structure to save entry informations
- * \param  index: Index in phonebook to read entry
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Read phonebook entry
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[out]    *entry: Pointer to empty \ref GSM_PB_Entry_t structure to save entry informations
+ * \param[in]     index: Index in phonebook to read entry
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_PB_Get(gvol GSM_t* GSM, uint32_t index, GSM_PB_Entry_t* entry, uint32_t blocking);
 
 /**
- * \brief  List entries from phonebook
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *entries: Pointer to array of empty entry structures to save data to
- * \param  start_index: Start index number in phonebook to read from
- * \param  btr: Number of entries to read. This number should not be greater than number of elements in entries array
- * \param  *br: Pointer to number to save actual number of entries read from phonebook
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         List entries from phonebook
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[out]    *entries: Pointer to array of empty \ref GSM_PB_Entry_t structures to save data to
+ * \param[in]     start_index: Start index number in phonebook to read from
+ * \param[in]     btr: Number of entries to read. This number should not be greater than number of elements in entries array
+ * \param[out]    *br: Pointer to number to save actual number of entries read from phonebook
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_PB_List(gvol GSM_t* GSM, GSM_PB_Entry_t* entries, uint16_t start_index, uint16_t btr, uint16_t* br, uint32_t blocking);
 
 /**
- * \brief  Search for entries in phonebook
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *search: Pointer to string to use in search operation
- * \param  *entries: Pointer to array of empty entry structures to save data to
- * \param  btr: Number of entries to read. This number should not be greater than number of elements in entries array
- * \param  *br: Pointer to number to save actual number of entries read from phonebook
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Search for entries in phonebook
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     *search: Pointer to string to use in search operation
+ * \param[out]    *entries: Pointer to array of empty entry structures to save data to
+ * \param[in]     btr: Number of entries to read. This number should not be greater than number of elements in entries array
+ * \param[out]    *br: Pointer to number to save actual number of entries read from phonebook
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_PB_Search(gvol GSM_t* GSM, const char* search, GSM_PB_Entry_t* entries, uint16_t btr, uint16_t* br, uint32_t blocking);
 
@@ -1145,18 +1145,18 @@ GSM_Result_t GSM_PB_Search(gvol GSM_t* GSM, const char* search, GSM_PB_Entry_t* 
  */
  
 /**
- * \defgroup DATETIME_API
- * \brief    DATETIME based functions
+ * \defgroup      DATETIME_API
+ * \brief         DATETIME based functions
  * \{
  */
  
 /**
- * \brief  Get current date and time from network
- * \note   Some network operators does not support this function. In this case, time when module was last reset will be returned.
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *datetime: Pointer to empty \ref GSM_DateTime_t structure to save date and time
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Get current date and time from network
+ * \note          Some network operators does not support this function. In this case, time when module was last reset will be returned.
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[out]    *datetime: Pointer to empty \ref GSM_DateTime_t structure to save date and time
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_DATETIME_Get(gvol GSM_t* GSM, GSM_DateTime_t* datetime, uint32_t blocking);
 
@@ -1165,37 +1165,37 @@ GSM_Result_t GSM_DATETIME_Get(gvol GSM_t* GSM, GSM_DateTime_t* datetime, uint32_
  */
  
 /**
- * \defgroup GPRS_API
- * \brief    GPRS based functions
+ * \defgroup      GPRS_API
+ * \brief         GPRS based functions
  * \{
  */
 /**
- * \brief  Connects module to GPRS network to access to internet
- * \note   This operation may take up to 3 minutes so take care when in blocking use. When in <b>RTOS</b> mode, you may use it in blocking mode easily.
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *apn: Pointer to APN string for internet
- * \param  *user: Pointer to user name. Use "" when no user is required
- * \param  *pwd: Pointer to password. Use "" when no password is required
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Connects module to GPRS network to access to internet
+ * \note          This operation may take up to 3 minutes so take care when in blocking use. When in <b>RTOS</b> mode, you may use it in blocking mode easily.
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     *apn: Pointer to APN string for internet
+ * \param[in]     *user: Pointer to user name. Use "" when no user is required
+ * \param[in]     *pwd: Pointer to password. Use "" when no password is required
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_GPRS_Attach(gvol GSM_t* GSM, const char* apn, const char* user, const char* pwd, uint32_t blocking);
 
 /**
- * \brief  Disconnects module from GPRS network
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Disconnects module from GPRS network
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_GPRS_Detach(gvol GSM_t* GSM, uint32_t blocking);
 
 /**
- * \brief  Gets GPS location from GPRS and current UTC time
- * \note   Connection with GRPS must be active in order to get information
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *GPS: Pointer to empty ref \GSM_GPS_t to save GPS information and date/time information
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Gets GPS location from GPRS and current UTC time
+ * \note          Connection with GRPS must be active in order to get information
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[out]    *GPS: Pointer to empty ref \GSM_GPS_t to save GPS information and date/time information
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_GPRS_GetLocationAndTime(gvol GSM_t* GSM, GSM_GPS_t* GPS, uint32_t blocking);
 
@@ -1204,74 +1204,74 @@ GSM_Result_t GSM_GPRS_GetLocationAndTime(gvol GSM_t* GSM, GSM_GPS_t* GPS, uint32
  */
 
 /**
- * \defgroup CONN_API
- * \brief    TCP/UDP connection based functions
+ * \defgroup      CONN_API
+ * \brief         TCP/UDP connection based functions
  * \{
  *
- * \note   Concept of connections is done to support multiple connections at the same time.
- *         However, currently only single connection at a time can be used.
+ * \note          Concept of connections is done to support multiple connections at the same time.
+ *                   However, currently only single connection at a time can be used.
  */
 
 /**
- * \brief  Start a new connection
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *conn: Pointer to empty \ref GSM_CONN_t structure for connection identifier
- * \param  type: Connection type. This parameter can be a value of \ref GSM_CONN_Type_t enumeration
- * \param  ssl: Connection over SSL. This parameter can be a value of \ref GSM_CONN_SSL_t enumeration. Parameter is valid only with TCP connection
- * \param  *host: Pointer to host where to connect. Can be a domain name or IP address, both in sting format
- * \param  port: Port to connect to
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Start a new connection
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     *conn: Pointer to empty \ref GSM_CONN_t structure for connection identifier
+ * \param[in]     type: Connection type. This parameter can be a value of \ref GSM_CONN_Type_t enumeration
+ * \param[in]     ssl: Connection over SSL. This parameter can be a value of \ref GSM_CONN_SSL_t enumeration. Parameter is valid only with TCP connection
+ * \param[in]     *host: Pointer to host where to connect. Can be a domain name or IP address, both in sting format
+ * \param[in]     port: Port to connect to
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_CONN_Start(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, GSM_CONN_Type_t type, GSM_CONN_SSL_t ssl, const char* host, uint16_t port, uint32_t blocking);
 
 /**
- * \brief  Send data on active connection
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *conn: Pointer to working \ref GSM_CONN_t structure for connection
- * \param  *data: Pointer to data to send
- * \param  btw: Number of bytes to send
- * \param  *bw: Pointer to save number of bytes actually sent in connection
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Send data on active connection
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     *conn: Pointer to working \ref GSM_CONN_t structure for connection
+ * \param[in]     *data: Pointer to data to send
+ * \param[in]     btw: Number of bytes to send
+ * \param[out]    *bw: Pointer to save number of bytes actually sent in connection
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_CONN_Send(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, const void* data, uint16_t btw, uint32_t* bw, uint32_t blocking);
 
 /**
- * \brief  Read received data on connection
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *conn: Pointer to working \ref GSM_CONN_t structure for connection
- * \param  *data: Pointer to data array to save receive data to
- * \param  btr: Length of data array in units of bytes
- * \param  *br: Pointer to number of actually read bytes from response
- * \param  timeBeforeRead: Wait time before actual trying to read. This enables you to wait for actual data to receive from response.
- *            Set to 0 if you don't want to wait.
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Read received data on connection
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     *conn: Pointer to working \ref GSM_CONN_t structure for connection
+ * \param[out]    *data: Pointer to data array to save receive data to
+ * \param[in]     btr: Length of data array in units of bytes
+ * \param[out]    *br: Pointer to number of actually read bytes from response
+ * \param[in]     timeBeforeRead: Wait time before actual trying to read. This enables you to wait for actual data to receive from response.
+ *                   Set to 0 if you don't want to wait.
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_CONN_Receive(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, void* data, uint16_t btr, uint32_t* br, uint16_t timeBeforeRead, uint32_t blocking);
 
 /**
- * \brief  Close active connection
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *conn: Pointer to working \ref GSM_CONN_t structure for connection
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Close active connection
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     *conn: Pointer to working \ref GSM_CONN_t structure for connection
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_CONN_Close(gvol GSM_t* GSM, gvol GSM_CONN_t* conn, uint32_t blocking);
 
 /**
- * \brief  Checks if any data to read from connection response
- * \note   This functions only checks flags and does not inquiry GSM.
- *              It means that when you are not in RTOS or ASYNC mode, 
- *              you have to manually call \ref GSM_Update function to parse any incoming data in a loop for specific timeout
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *conn: Pointer to active \ref GSM_CONN_t connection structure
- * \param  blocking: Status whether this function should be blocking to check for response.
- *           Currently this param has no effect and is reserved for future use
- * \retval Status indicating if data available:
- *           - 0: Data not available
- *           - > 0: Data available for read operation
+ * \brief         Checks if any data to read from connection response
+ * \note          This functions only checks flags and does not inquiry GSM.
+ *                   It means that when you are not in RTOS or ASYNC mode, 
+ *                   you have to manually call \ref GSM_Update function to parse any incoming data in a loop for specific timeout
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     *conn: Pointer to active \ref GSM_CONN_t connection structure
+ * \param[in]     blocking: Status whether this function should be blocking to check for response.
+ *                   Currently this param has no effect and is reserved for future use
+ * \retval        Status indicating if data available:
+ *                   - 0: Data not available
+ *                   - > 0: Data available for read operation
  */
 uint32_t GSM_CONN_DataAvailable(gvol GSM_t* GSM, const gvol GSM_CONN_t* conn, uint32_t blocking);
 
@@ -1280,81 +1280,81 @@ uint32_t GSM_CONN_DataAvailable(gvol GSM_t* GSM, const gvol GSM_CONN_t* conn, ui
  */
 
 /**
- * \defgroup HTTP_API
- * \brief    HTTP based functions
+ * \defgroup      HTTP_API
+ * \brief         HTTP based functions
  * \{
  */
 
 /**
- * \brief  Begin with HTTP support on SIM module
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Begin with HTTP support on SIM module
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_HTTP_Begin(gvol GSM_t* GSM, uint32_t blocking);
 
 /**
- * \brief  Stop GSM HTTP SIM module
- * \note   To use it again, use \ref GSM_HTTP_Begin function
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Stop GSM HTTP SIM module
+ * \note          To use it again, use \ref GSM_HTTP_Begin function
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_HTTP_End(gvol GSM_t* GSM, uint32_t blocking);
 
 /**
- * \brief  Set content for HTTP request
- * \note   This function does not set actual data for HTTP, but only sets content type, e.g. "application/json".
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *content: Pointer to content type string
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Set content for HTTP request
+ * \note          This function does not set actual data for HTTP, but only sets content type, e.g. "application/json".
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     *content: Pointer to content type string
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_HTTP_SetContent(gvol GSM_t* GSM, const char* content, uint32_t blocking);
 
 /**
- * \brief  Set data to be sent on HTTP body for POST or PUT methods
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *data: Data to be sent as body
- * \param  btw: Number of bytes to send
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Set data to be sent on HTTP body for POST or PUT methods
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     *data: Data to be sent as body
+ * \param[in]     btw: Number of bytes to send
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_HTTP_SetData(gvol GSM_t* GSM, const void* data, uint32_t btw, uint32_t blocking);
 
 /**
- * \brief  Execute HTTP request to server with given URL and method
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *url: Remote URL to use starting with "http://" or "https://"
- * \param  method: HTTP method to use. This parameter can be a value of \ref GSM_HTTP_Method_t enumeration
- * \param  ssl: Enable SSL for HTTP. This parameter can be a value of \ref GSM_HTTP_SSL_t enumeration
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Execute HTTP request to server with given URL and method
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     *url: Remote URL to use starting with "http://" or "https://"
+ * \param[in]     method: HTTP method to use. This parameter can be a value of \ref GSM_HTTP_Method_t enumeration
+ * \param[in]     ssl: Enable SSL for HTTP. This parameter can be a value of \ref GSM_HTTP_SSL_t enumeration
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
  GSM_Result_t GSM_HTTP_Execute(gvol GSM_t* GSM, const char* url, GSM_HTTP_Method_t method, GSM_HTTP_SSL_t ssl, uint32_t blocking);
 
 /**
- * \brief  Read data from HTTP response
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *data: Pointer to array to save data to
- * \param  btr: Number of bytes to read from response
- * \param  *br: Pointer to save number of actual data read from response
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Read data from HTTP response
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[out]    *data: Pointer to array to save data to
+ * \param[in]     btr: Number of bytes to read from response
+ * \param[out]    *br: Pointer to save number of actual data read from response
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_HTTP_Read(gvol GSM_t* GSM, void* data, uint32_t btr, uint32_t* br, uint32_t blocking);
 
 /**
- * \brief  Checks if any data to read from HTTP response
- * \note   This functions only checks flags and does not inquiry GSM.
- *              It means that when you are not in <b>RTOS</b> or <b>ASYNC</b> mode, 
- *              you have to manually call \ref GSM_Update function to parse any incoming data in a loop for specific timeout
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  blocking: Status whether this function should be blocking to check for response.
- *           Currently this param has no effect and is reserved for future use
- * \retval Status indicating if data available:
- *           - 0: Data not available
- *           - > 0: Data available for read operation
+ * \brief         Checks if any data to read from HTTP response
+ * \note          This functions only checks flags and does not inquiry GSM.
+ *                  It means that when you are not in <b>RTOS</b> or <b>ASYNC</b> mode, 
+ *                  you have to manually call \ref GSM_Update function to parse any incoming data in a loop for specific timeout
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     blocking: Status whether this function should be blocking to check for response.
+ *                  Currently this param has no effect and is reserved for future use
+ * \retval        Status indicating if data available:
+ *                   - 0: Data not available
+ *                   - > 0: Data available for read operation
  */
 uint32_t GSM_HTTP_DataAvailable(gvol GSM_t* GSM, uint32_t blocking);
 
@@ -1363,117 +1363,117 @@ uint32_t GSM_HTTP_DataAvailable(gvol GSM_t* GSM, uint32_t blocking);
  */
  
 /**
- * \defgroup FTP_API
- * \brief    FTP based functions
- * \since    0.4
+ * \defgroup      FTP_API
+ * \brief         FTP based functions
+ * \since         0.4
  * \{
  */
 
 /**
- * \brief  Enable FTP procedure
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  mode: FTP mode either active or passive. This parameter can be a value of \ref GSM_FTP_Mode_t enumeration
- * \param  ssl: FTP over SSL. This parameter can be a value of \ref GSM_FTP_SSL_t enumeration
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Enable FTP procedure
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     mode: FTP mode either active or passive. This parameter can be a value of \ref GSM_FTP_Mode_t enumeration
+ * \param[in]     ssl: FTP over SSL. This parameter can be a value of \ref GSM_FTP_SSL_t enumeration
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_FTP_Begin(gvol GSM_t* GSM, GSM_FTP_Mode_t mode, GSM_FTP_SSL_t ssl, uint32_t blocking);
 
 /**
- * \brief  Disable FTP procedure
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Disable FTP procedure
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_FTP_End(gvol GSM_t* GSM, uint32_t blocking);
 
 /**
- * \brief  Authenticate to server with server name, port, username and password
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *server: Pointer to server address
- * \param  port: FTP port to connect. In most cases, port 21 is used
- * \param  *user: FTP username
- * \param  *pass: FTP password
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Authenticate to server with server name, port, username and password
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     *server: Pointer to server address
+ * \param[in]     port: FTP port to connect. In most cases, port 21 is used
+ * \param[in]     *user: FTP username
+ * \param[in]     *pass: FTP password
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_FTP_Authenticate(gvol GSM_t* GSM, const char* server, uint16_t port, const char* user, const char* pass, uint32_t blocking);
 
 /**
- * \brief  Begin with file download session
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *folder: Folder to use for file download
- * \param  *file: File to download in specific folder. For some FTP servers, this parameter must start with "/" character
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Begin with file download session
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     *folder: Folder to use for file download
+ * \param[in]     *file: File to download in specific folder. For some FTP servers, this parameter must start with "/" character
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_FTP_DownloadBegin(gvol GSM_t* GSM, const char* folder, const char* file, uint32_t blocking);
 
 /**
- * \brief  Checks if FTP download session is active
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Checks if FTP download session is active
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_FTP_DownloadActive(gvol GSM_t* GSM, uint32_t blocking);
 
 /**
- * \brief  Checks if there are bytes to read in current session
- * \note   If may happen that session is active (\ref GSM_FTP_DownloadActive) but there are no data to read.
- *           This means that you will have to wait for incoming data a little first.
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Checks if there are bytes to read in current session
+ * \note          If may happen that session is active (\ref GSM_FTP_DownloadActive) but there are no data to read.
+ *                   This means that you will have to wait for incoming data a little first.
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_FTP_DownloadAvailable(gvol GSM_t* GSM, uint32_t blocking);
 
 /**
- * \brief  Read downloaded data from GSM device
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *data: Data to save data read from GSM
- * \param  btr: Bytes to read from device
- * \param  *br: Pointer to number of bytes actually read from device
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Read downloaded data from GSM device
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[out]    *data: Data to save data read from GSM
+ * \param[in]     btr: Bytes to read from device
+ * \param[out]    *br: Pointer to number of bytes actually read from device
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_FTP_Download(gvol GSM_t* GSM, void* data, uint32_t btr, uint32_t* br, uint32_t blocking);
 
 /**
- * \brief  Finish with FTP download session
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Finish with FTP download session
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_FTP_DownloadEnd(gvol GSM_t* GSM, uint32_t blocking);
 
 /**
- * \brief  Begin with file upload session
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *folder: Folder to use for file download
- * \param  *file: File to download in specific folder. For some FTP servers, this parameter must start with "/" character
- * \param  mode: Upload mode. This parameter can be a value of \ref GSM_FTP_UploadMode_t enumeration
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Begin with file upload session
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     *folder: Folder to use for file download
+ * \param[in]     *file: File to download in specific folder. For some FTP servers, this parameter must start with "/" character
+ * \param[in]     mode: Upload mode. This parameter can be a value of \ref GSM_FTP_UploadMode_t enumeration
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_FTP_UploadBegin(gvol GSM_t* GSM, const char* folder, const char* file, GSM_FTP_UploadMode_t mode, uint32_t blocking);
 
 /**
- * \brief  Upload data to FTP server
- * \note   This function can be called multiple times when more data needs to be sent
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  *data: Pointer to data to upload to FTP server
- * \param  btw: Number of bytes to write over FTP
- * \param  *bw: Pointer to save number of bytes written over FTP
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Upload data to FTP server
+ * \note          This function can be called multiple times when more data needs to be sent
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     *data: Pointer to data to upload to FTP server
+ * \param[in]     btw: Number of bytes to write over FTP
+ * \param[out]    *bw: Pointer to save number of bytes written over FTP
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_FTP_Upload(gvol GSM_t* GSM, const void* data, uint32_t btw, uint32_t* bw, uint32_t blocking);
 
 /**
- * \brief  Finish with FTP upload session
- * \param  *GSM: Pointer to working \ref GSM_t structure
- * \param  blocking: Status whether this function should be blocking to check for response
- * \retval Member of \ref GSM_Result_t enumeration
+ * \brief         Finish with FTP upload session
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref GSM_Result_t enumeration
  */
 GSM_Result_t GSM_FTP_UploadEnd(gvol GSM_t* GSM, uint32_t blocking);
 
