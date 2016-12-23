@@ -102,7 +102,11 @@ typedef enum _GSM_Result_t {
     gsmSIMNOTREADYERROR,                                    /*!< SIM is not ready to operate */
     gsmENTERTEXTMODEERROR,                                  /*!< Error trying to enter text mode for SMS */
     gsmSIMMEMORYERROR,                                      /*!< Error trying to select SMS mode */
-    gsmNETWORKERROR
+    
+    gsmNETWORKNOTREGISTEREDERROR,                           /*!< Device is not connected to network and is not searching for network anymore */
+    gsmNETWORKNOTREGISTEREDSEARCHINERROR,                   /*!< Device is not connected to network, but is searching for network. You might wait a little time when this status is returned */
+    gsmNETWORKREGISTRATIONDENIEDERROR,                      /*!< Device found network but registration to it has been denied */
+    gsmNETWORKERROR,
 } GSM_Result_t;
 
 /**
@@ -393,12 +397,12 @@ typedef enum _GSM_FTP_UploadMode_t {
  * \brief         GSM network status
  */
 typedef enum _GSM_NetworkStatus_t {
-    GSM_NetworkStatus_Searching = 0x00,                     /*!< Searching for network */
+    GSM_NetworkStatus_NotRegistered = 0x00,                 /*!< Not registered and not searching */
     GSM_NetworkStatus_RegisteredHome = 0x01,                /*!< Registered in home network */
-    GSM_NetworkStatus_NotRegistered,                        /*!< Not registered and not searching */
-    GSM_NetworkStatus_RegistrationDenied,                   /*!< Registration has been denied */
-    GSM_NetworkStatus_Unknown,                              /*!< Unknown status */
-    GSM_NetworkStatus_RegisteredRoaming                     /*!< Registered and roaming */
+    GSM_NetworkStatus_Searching = 0x02,                     /*!< Searching for network */
+    GSM_NetworkStatus_RegistrationDenied = 0x03,            /*!< Registration has been denied */
+    GSM_NetworkStatus_Unknown = 0x04,                       /*!< Unknown status */
+    GSM_NetworkStatus_RegisteredRoaming = 0x05              /*!< Registered and roaming */
 } GSM_NetworkStatus_t;
 
 /**
@@ -717,8 +721,8 @@ GSM_Result_t GSM_IsReady(gvol GSM_t* GSM);
 uint32_t GSM_DataReceived(uint8_t* ch, uint32_t count);
 
 /**
- * \defgroup FUNC_API
- * \brief           Phone functionality related functions
+ * \defgroup      FUNC_API
+ * \brief         Phone functionality related functions
  * \{
  */
 
@@ -745,13 +749,13 @@ GSM_Result_t GSM_FUNC_Get(gvol GSM_t* GSM, GSM_Func_t* func, uint32_t blocking);
  */
  
 /**
- * \defgroup INFO_API
- * \brief           Informations based functions
+ * \defgroup      INFO_API
+ * \brief         Informations based functions
  * \{
  */
 
 /**
- * \brief         Gets manufacturer from SIM device
+ * \brief         Get manufacturer from SIM device
  * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
  * \param[out]    *str: Pointer to string array to save menufacturer name
  * \param[in]     length: Length of string array
@@ -761,7 +765,7 @@ GSM_Result_t GSM_FUNC_Get(gvol GSM_t* GSM, GSM_Func_t* func, uint32_t blocking);
 GSM_Result_t GSM_INFO_GetManufacturer(gvol GSM_t* GSM, char* str, uint32_t length, uint32_t blocking);
 
 /**
- * \brief         Gets model name from SIM device
+ * \brief         Get model name from SIM device
  * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
  * \param[out]    *str: Pointer to string array to save model name
  * \param[in]     length: Length of string array
@@ -771,7 +775,7 @@ GSM_Result_t GSM_INFO_GetManufacturer(gvol GSM_t* GSM, char* str, uint32_t lengt
 GSM_Result_t GSM_INFO_GetModel(gvol GSM_t* GSM, char* str, uint32_t length, uint32_t blocking);
 
 /**
- * \brief         Gets revision from SIM device
+ * \brief         Get revision from SIM device
  * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
  * \param[out]    *str: Pointer to string array to save revision name
  * \param[in]     length: Length of string array
@@ -781,7 +785,7 @@ GSM_Result_t GSM_INFO_GetModel(gvol GSM_t* GSM, char* str, uint32_t length, uint
 GSM_Result_t GSM_INFO_GetRevision(gvol GSM_t* GSM, char* str, uint32_t length, uint32_t blocking);
 
 /**
- * \brief         Gets serial number from SIM device
+ * \brief         Get serial number (IMEI) from SIM device
  * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
  * \param[out]    *str: Pointer to string array to save serial number
  * \param[in]     length: Length of string array
@@ -863,8 +867,8 @@ GSM_Result_t GSM_OP_Set(gvol GSM_t* GSM, GSM_OperatorMode_t mode, GSM_OperatorFo
  */
 
 /**
- * \defgroup PIN_API
- * \brief           PIN/PUK based functions
+ * \defgroup      PIN_API
+ * \brief         PIN/PUK based functions
  * \{
  */
  
@@ -910,8 +914,8 @@ GSM_Result_t GSM_PUK_Enter(gvol GSM_t* GSM, const char* puk, const char* new_pin
  */
 
 /**
- * \defgroup CALL_API
- * \brief           CALL based functions
+ * \defgroup      CALL_API
+ * \brief         CALL based functions
  * \{
  */
 

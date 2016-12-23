@@ -292,17 +292,25 @@ if ((GSM)->CPIN != GSM_CPIN_Ready) {                        /* SIM must be ready
 #define GSM_EXECUTE_NETWORK_CHECK(GSM)  \
 if ((GSM)->NetworkStatus != GSM_NetworkStatus_RegisteredHome && \
     (GSM)->NetworkStatus != GSM_NetworkStatus_RegisteredRoaming) {  /* Check if connected to network */ \
-    __CMD_SAVE(GSM);                                                                          \
+    __CMD_SAVE(GSM);                                                                            \
     __RST_EVENTS_RESP(GSM);                                 /* Reset events */                  \
     UART_SEND_STR(FROMMEM("AT+CREG?"));                     /* Check again to be sure */        \
     UART_SEND_STR(FROMMEM(GSM_CRLF));                                                           \
     StartCommand(GSM, CMD_GPRS_CREG, NULL);                                                     \
     PT_WAIT_UNTIL(pt, (GSM)->Events.F.RespOk ||                                                 \
                         (GSM)->Events.F.RespError);         /* Wait for response */             \
-    __CMD_RESTORE(GSM);                                                                       \
+    __CMD_RESTORE(GSM);                                                                         \
     if ((GSM)->NetworkStatus != GSM_NetworkStatus_RegisteredHome &&                             \
         (GSM)->NetworkStatus != GSM_NetworkStatus_RegisteredRoaming) {                          \
-        GSM->ActiveResult = gsmNETWORKERROR;                /* Network ERROR */                 \
+        if ((GSM)->NetworkStatus == GSM_NetworkStatus_NotRegistered) {                          \
+            (GSM)->ActiveResult = gsmNETWORKNOTREGISTEREDERROR; /* Device is not registered to network */   \
+        } else if ((GSM)->NetworkStatus == GSM_NetworkStatus_Searching) {                       \
+            (GSM)->ActiveResult = gsmNETWORKNOTREGISTEREDSEARCHINERROR; /* Device is not registered to network */   \
+        } else if ((GSM)->NetworkStatus == GSM_NetworkStatus_RegistrationDenied) {              \
+            (GSM)->ActiveResult = gsmNETWORKREGISTRATIONDENIEDERROR;    /* Registration denied */   \
+        } else {                                                                                \
+            (GSM)->ActiveResult = gsmNETWORKERROR;          /* Network ERROR */                 \
+        }                                                                                       \
         __IDLE(GSM);                                        /* Go IDLE mode */                  \
         PT_EXIT(pt);                                        /* Stop execution */                \
     }                                                                                           \
