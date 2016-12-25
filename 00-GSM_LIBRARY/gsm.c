@@ -378,23 +378,23 @@ int32_t ParseNumber(const char* ptr, uint8_t* cnt) {
     uint8_t minus = 0, i = 0;
     int32_t sum = 0;
     
-    if (*ptr == '-') {                                		/* Check for minus character */
+    if (*ptr == '-') {                                      /* Check for minus character */
         minus = 1;
         ptr++;
         i++;
     }
-    while (CHARISNUM(*ptr)) {                        		/* Parse number */
+    while (CHARISNUM(*ptr)) {                               /* Parse number */
         sum = 10 * sum + CHARTONUM(*ptr);
         ptr++;
         i++;
     }
-    if (cnt != NULL) {                                		/* Save number of characters used for number */
+    if (cnt != NULL) {                                      /* Save number of characters used for number */
         *cnt = i;
     }
-    if (minus) {                                    		/* Minus detected */
+    if (minus) {                                            /* Minus detected */
         return 0 - sum;
     }
-    return sum;                                       		/* Return number */
+    return sum;                                             /* Return number */
 }
 
 /* Parse float number */
@@ -408,7 +408,8 @@ float ParseFloatNumber(const char* ptr, uint8_t* cnt) {
     ptr += i;
     if (*ptr == '.') {                                      /* Check decimals */
         float dec;
-        dec = (float)ParseNumber(ptr + 1, &i) / (float)pow(10, i);
+        dec = (float)ParseNumber(ptr + 1, &i);
+        dec /= (float)pow(10, i);
         if (sum >= 0) {
             sum += dec;
         } else {
@@ -806,7 +807,7 @@ void ParseCOPSSCAN(gvol GSM_t* GSM, char ch, uint8_t first) {
     }
 
     if (u.Flags.F.BracketOpen) {                            /* When we are inside one operator */
-        if (ch == ')') {
+        if (ch == ')') {                                    /* Close bracket */
             u.Flags.F.BracketOpen = 0;
             *(uint16_t *)Pointers.Ptr2 = (*(uint16_t *)Pointers.Ptr2) + 1;  /* Increase number of read operators so far */
 
@@ -845,7 +846,7 @@ void ParseCOPSSCAN(gvol GSM_t* GSM, char ch, uint8_t first) {
         }
     } else {
         if (ch == '(') {
-            u.Flags.F.BracketOpen = 1;
+            u.Flags.F.BracketOpen = 1;                      /* We started with open bracket */
         } else if (ch == ',') {
             if (prev_ch == ',') {
                 u.Flags.F.CommaCommaDetected = 1;           /* We have detected 2 commas in series */
@@ -903,7 +904,7 @@ void ParseReceived(gvol GSM_t* GSM, Received_t* Received) {
     
     /* Check for OK */
     if (GSM->ActiveCmd == CMD_GPRS_CIPSHUT) {               /* CIPSHUT answers with another response as OK */
-        is_ok = strcmp(str, FROMMEM("SHUT OK\r\n")) == 0;         /* Check if OK received */
+        is_ok = strcmp(str, FROMMEM("SHUT OK\r\n")) == 0;   /* Check if OK received */
     } else {
         is_ok = strcmp(str, GSM_OK) == 0;                   /* Check if OK received */
     }
