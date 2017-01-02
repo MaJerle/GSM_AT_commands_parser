@@ -82,6 +82,12 @@ uint8_t GSM_LL_Init(GSM_LL_t* LL);
 
 /**
  * \brief  Sends data to SIM module from GSM stack
+ * \note   Send can be implemented using DMA or IRQ easily,
+ *            without waiting for finish.
+ *            However, when multiple calls are executed,
+ *            you must take care to send previous data first.
+ *            Using DMA or IRQ, you can use cyclic buffers for implementation.
+ *
  * \param  *LL: Pointer to \ref GSM_LL_t structure with settings
  * \param  *data: Data to be sent to module
  * \param  count: Number of bytes to be sent to module

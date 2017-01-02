@@ -189,7 +189,6 @@ int GSM_Callback(GSM_Event_t evt, GSM_EventParams_t* params) {
             printf("Stack is IDLE!\r\n");
             break;
         case gsmEventSMSCMTI:                   /* Information about new SMS received */
-            /* Ring was received here */
             printf("SMS received!\r\n");
             break;
         default:
