@@ -418,7 +418,7 @@ float ParseFloatNumber(const char* ptr, uint8_t* cnt) {
         j += i + 1;
     }
 
-    if (cnt != NULL) {                                      /* Save number of characters used for number*/
+    if (cnt != NULL) {                                      /* Save number of characters used for number */
         *cnt = j;
     }
     return sum;                                             /* Return number */
@@ -1158,7 +1158,7 @@ GSM_Result_t StartCommand(gvol GSM_t* GSM, uint16_t cmd, const char* cmdResp) {
 /* Converts number to string */
 gstatic
 void NumberToString(char* str, uint32_t number) {
-    sprintf(str, "%d", number);
+    sprintf(str, "%u", number);
 }
 
 /******************************************************************************/
