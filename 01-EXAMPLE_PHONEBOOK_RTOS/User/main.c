@@ -121,32 +121,42 @@ void GSM_Update_Thread(void const* params) {
  * \brief  Application thread to work with GSM module only
  */
 void GSM_Main_Thread(void const* params) {
+    uint8_t i = 0;
+    
     /* Init GSM library with PIN code */
     printf("GSM Init status: %d\r\n", GSM_Init(&GSM, GSM_PIN, 115200, GSM_Callback));
+    
+    osDelay(5000);
     
     /* Add new entry to phonebook */
     if ((gsmRes = GSM_PB_Add(&GSM, "Name", "0123456789", 1)) == gsmOK) {
         printf("New entry added to phonebook!\r\n");
     }
     
-    /* Read entry from location number 0 in SIM memory */
-    if ((gsmRes = GSM_PB_Get(&GSM, 0, &Entry, 1)) == gsmOK) {
-        printf("Entry on index %d has: Name = %s, Number: %s\r\n", Entry.Index, Entry.Name, Entry.Number);
-        
-        /* Edit number on entry, set new name and new number on previously read index */
-        /* If there is no phone number on this index, new will be automatically created */
-        if ((gsmRes = GSM_PB_Edit(&GSM, Entry.Index, "New name", "123321456", 1)) == gsmOK) {
-            printf("Entry has been updated!\r\n");
+    /* Find first PB entry from 0 to 100 */
+    for (i = 0; i < 100; i++) {
+        /* Read entry from location number in SIM memory */
+        if ((gsmRes = GSM_PB_Get(&GSM, i, &Entry, 1)) == gsmOK) {
+            printf("Entry on index %d has: Name = %s, Number: %s\r\n", Entry.Index, Entry.Name, Entry.Number);
+            
+            /* Edit number on entry, set new name and new number on previously read index */
+            /* If there is no phone number on this index, new will be automatically created */
+            if ((gsmRes = GSM_PB_Edit(&GSM, Entry.Index, "New name", "123321456", 1)) == gsmOK) {
+                printf("Entry has been updated!\r\n");
+            } else {
+                printf("Error trying to update entry: %d\r\n", gsmRes);
+            }
+            
+            /* Stop execution */
+            break;
         } else {
-            printf("Error trying to update entry: %d\r\n", gsmRes);
+            printf("Error trying to read entry: %d\r\n", gsmRes);
         }
-    } else {
-        printf("Error trying to read entry: %d\r\n", gsmRes);
     }
     
     /* List entries from desired start index */
     /* Read entries from start index 0, read as many bytes as possible to store in our array*/
-    if ((gsmRes = GSM_PB_List(&GSM, entries, 0, sizeof(entries) / sizeof(entries[0]), &br, 1)) == gsmOK) {
+    if ((gsmRes = GSM_PB_List(&GSM, entries, Entry.Index, sizeof(entries) / sizeof(entries[0]), &br, 1)) == gsmOK) {
         printf("Successfully read %d entries from memory\r\n", br);
     } else {
         printf("Error trying to read entries: %d\r\n", gsmRes);
@@ -163,7 +173,7 @@ void GSM_Main_Thread(void const* params) {
     if ((gsmRes = GSM_PB_Delete(&GSM, Entry.Index, 1)) == gsmOK) {
         printf("Entry on index %d has been deleted\r\n", Entry.Index);
     } else {
-        printf("Error trying to read entry: %d\r\n", gsmRes);
+        printf("Error trying to delete entry: %d\r\n", gsmRes);
     }
     
     /* Do nothing */

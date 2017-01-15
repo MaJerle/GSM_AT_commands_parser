@@ -88,6 +88,22 @@ extern "C" {
 #define GSM_MAX_RECEIVED_SMS_INFO       3
 
 /**
+ * \brief  Enables (1) or disables (0) functions for HTTP API features on GSM device
+ *
+ * \note   When disabled, there is no support for built-in HTTP processing on GSM module, 
+ *         all HTTP related functions are disabled.
+ */
+#define GSM_HTTP                        1
+
+/**
+ * \brief  Enables (1) or disables (0) functions for FTP API features on GSM device
+ *
+ * \note   When disabled, there is no support for built-in FTP processing on GSM module, 
+ *         all FTP related functions are disabled.
+ */
+#define GSM_FTP                         1
+
+/**
  * \}
  */
 
