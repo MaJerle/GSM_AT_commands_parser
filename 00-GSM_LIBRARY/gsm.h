@@ -65,6 +65,14 @@ extern "C" {
 #include "gsm_sys.h"
 #endif
 
+/* Backward compatibility */
+#if !defined(GSM_HTTP)
+#define GSM_HTTP          1
+#endif
+#if !defined(GSM_FTP)
+#define GSM_FTP           1
+#endif
+
 /**
  * @defgroup GSM_Macros
  * @brief    Library defines
@@ -543,11 +551,15 @@ typedef struct _GSM_t {
     /*!< Plain connections check */
     GSM_CONN_t* Conns[6];                                   /*!< Array of pointers to connections */
     
+#if GSM_HTTP
     /*!< HTTP */
     GSM_HTTP_t HTTP;                                        /*!< HTTP related structure */
+#endif
     
+#if GSM_FTP
     /*!< FTP */
     GSM_FTP_t FTP;                                          /*!< FTP related structure */
+#endif
     
 #if GSM_RTOS
     /*!< RTOS support */
@@ -577,9 +589,13 @@ typedef struct _GSM_t {
             
             uint8_t CLIENT_Read_Data:1;                     /*!< Set to 1 when we are reading raw data from client response */
             
+#if GSM_HTTP
             uint8_t HTTP_Read_Data:1;                       /*!< Set to 1 when reading data from HTTP response */
+#endif /* GSM_HTTP */
             
+#if GSM_FTP
             uint8_t FTP_Read_Data:1;                        /*!< Set to 1 when reading data from FTP response */
+#endif /* GSM_FTP */
             
             uint8_t Call_GPRS_Attached:1;                   /*!< Set to 1 when GPRS is attached sucessfully */
             uint8_t Call_GPRS_Attach_Error:1;               /*!< Set to 1 when GPRS was not attached */
@@ -611,15 +627,18 @@ typedef struct _GSM_t {
             uint8_t RespSendOk:1;                           /*!< n, SEND OK was returned from device */
             uint8_t RespSendFail:1;                         /*!< n, SEND FAIL was returned from device */
             
-            uint8_t RespHttpAction:1;                       /*!< +HTTPACTION received and already parsed */
-            uint8_t RespDownload:1;                         /*!< DOWNLOAD received for download HTTP data */
-            
             uint8_t RespCallReady:1;                        /*!< Set to 1 when call is ready */
             uint8_t RespSMSReady:1;                         /*!< Set to 1 when SNS is ready */
             
+#if GSM_HTTP
+            uint8_t RespHttpAction:1;                       /*!< +HTTPACTION received and already parsed */
+            uint8_t RespDownload:1;                         /*!< DOWNLOAD received for download HTTP data */
+#endif /* GSM_HTTP */
+#if GSM_FTP
             uint8_t RespFtpGet:1;                           /*!< Response for FTPGET was received */
             uint8_t RespFtpPut:1;                           /*!< Response for FTPPUT was received */
             uint8_t RespFtpUploadReady:1;                   /*!< Response for FTPPUT was received for uploading data available */
+#endif /* GSM_FTP */
         } F;
         uint32_t Value;                                     /*!< Value containing all the flags in single memory */
     } Events;                                               /*!< Union holding all the required events for library internal processing */

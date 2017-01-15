@@ -529,14 +529,14 @@ void ParseCLCC(gvol GSM_t* GSM, gvol GSM_CallInfo_t* CallInfo, const char* str) 
     str += ++cnt;
     
     /* Parse phone book name if exists */
+    CallInfo->Name[0] = 0;
     if (*str == '"') {
         str++;
-    }
-    CallInfo->Name[0] = 0;
-    cnt = 0;
-    while (*str && *str != '"') {
-        CallInfo->Name[cnt++] = *str++;                     /* Save number as string */
-        CallInfo->Name[cnt] = 0;
+        cnt = 0;
+        while (*str && *str != '"') {
+            CallInfo->Name[cnt++] = *str++;                 /* Save number as string */
+            CallInfo->Name[cnt] = 0;
+        }
     }
 }
 
@@ -670,6 +670,7 @@ void ParseCIPRXGET(gvol GSM_t* GSM, GSM_CONN_t* conn, const char* str) {
     }
 }
 
+#if GSM_HTTP
 /* Parse +HTTPACTION statement */
 gstatic
 void ParseHTTPACTION(gvol GSM_t* GSM, gvol GSM_HTTP_t* http, const char* str) {
@@ -681,7 +682,9 @@ void ParseHTTPACTION(gvol GSM_t* GSM, gvol GSM_HTTP_t* http, const char* str) {
     str += cnt + 1;
     http->BytesReceived = ParseNumber(str, NULL);           /* Parse number of bytes to read */
 }
+#endif /* GSM_HTTP */
 
+#if GSM_FTP
 /* Parse +FTPPUT statement */
 gstatic
 void ParseFTPPUT(gvol GSM_t* GSM, gvol GSM_FTP_t* ftp, const char* str) {
@@ -727,6 +730,7 @@ void ParseFTPGET(gvol GSM_t* GSM, gvol GSM_FTP_t* ftp, const char* str) {
         }
     }
 }
+#endif /* GSM_FTP */
 
 /* Parse +CIPGSMLOC statement */
 gstatic
@@ -1087,6 +1091,7 @@ void ParseReceived(gvol GSM_t* GSM, Received_t* Received) {
             } else {                                        /* Notification info */
                 ParseCIPRXGET(GSM, NULL, str + 11);         /* Get connection ID from string */
             }
+#if GSM_HTTP
         } else if (strncmp(str, FROMMEM("+HTTPACTION:"), 12) == 0) {  /* Check HTTPACTION */
             ParseHTTPACTION(GSM, &GSM->HTTP, &str[13]);     /* Parse +HTTPACTION response */
             GSM->Events.F.RespHttpAction = 1;               /* HTTP ACTION */
@@ -1094,6 +1099,8 @@ void ParseReceived(gvol GSM_t* GSM, Received_t* Received) {
             GSM->HTTP.BytesRead = 0;                        /* Reset read bytes */
             GSM->HTTP.BytesReadRemaining = ParseNumber(&str[11], NULL); /* Get number of bytes we have to read in this request */
             GSM->Flags.F.HTTP_Read_Data = 1;                /* HTTP read data */
+#endif /* GSM_HTTP */
+#if GSM_FTP
         } else if (strncmp(str, FROMMEM("+FTPGET:"), 8) == 0) { /* Parse FTPGET */
             ParseFTPGET(GSM, (GSM_FTP_t *)&GSM->FTP, &str[9]);  /* Parse FTP GET statement */
             GSM->Events.F.RespFtpGet = 1;                   /* FTP GET was received */
@@ -1110,6 +1117,7 @@ void ParseReceived(gvol GSM_t* GSM, Received_t* Received) {
             if (GSM->FTP.Mode == 2) {                       /* +FTPPUT:2,.. received */
                 GSM->Events.F.RespFtpUploadReady = 1;       /* Upload is ready to proceed */
             }
+#endif /* GSM_FTP */
         } else if (GSM->ActiveCmd == CMD_GPRS_CIPGSMLOC && strncmp(str, FROMMEM("+CIPGSMLOC"), 10) == 0) {
             if (Pointers.Ptr1) {                            /* Check valid pointer */
                 ParseCIPGSMLOC(GSM, (GSM_GPS_t *)Pointers.Ptr1, str + 12);  /* Parse GPS location and time */
@@ -1129,9 +1137,11 @@ void ParseReceived(gvol GSM_t* GSM, Received_t* Received) {
         GSM->Flags.F.Call_UV_Warn = 1;                      /* Set flag for callback */
     }
     
+#if GSM_HTTP
     if (GSM->ActiveCmd == CMD_GPRS_HTTPDATA && strncmp(str, "DOWNLOAD", 8) == 0) {  /* Download received? */
         GSM->Events.F.RespDownload = 1;                     /* Set flag, send data */
     }
+#endif /* GSM_HTTP */
     
     if (is_ok) {
         GSM->Events.F.RespOk = 1;
@@ -1679,7 +1689,7 @@ PT_THREAD(PT_Thread_PB(struct pt* pt, gvol GSM_t* GSM)) {
         UART_SEND_STR(FROMMEM("AT+CPBW="));                 /* Send command */
         UART_SEND_STR(FROMMEM(",\""));
         UART_SEND_STR((char *)Pointers.CPtr1);              /* Send number */
-        UART_SEND_STR(FROMMEM("\",129,\""));                      /* Send national number format */
+        UART_SEND_STR(FROMMEM("\",129,\""));                /* Send national number format */
         UART_SEND_STR((char *)Pointers.CPtr2);              /* Send name */
         UART_SEND_STR(FROMMEM("\""));
         UART_SEND_STR(GSM_CRLF);
@@ -1697,7 +1707,7 @@ PT_THREAD(PT_Thread_PB(struct pt* pt, gvol GSM_t* GSM)) {
         UART_SEND_STR(str);                                 /* Send index */
         UART_SEND_STR(FROMMEM(",\""));
         UART_SEND_STR((char *)Pointers.CPtr1);              /* Send number */
-        UART_SEND_STR(FROMMEM("\",129,\""));                      /* Send national number format */
+        UART_SEND_STR(FROMMEM("\",129,\""));                /* Send national number format */
         UART_SEND_STR((char *)Pointers.CPtr2);              /* Send name */
         UART_SEND_STR(FROMMEM("\""));
         UART_SEND_STR(GSM_CRLF);
@@ -1799,7 +1809,7 @@ PT_THREAD(PT_Thread_DATETIME(struct pt* pt, gvol GSM_t* GSM)) {
 
 gstatic
 PT_THREAD(PT_Thread_GPRS(struct pt* pt, gvol GSM_t* GSM)) {
-    char str[7], ch;
+    char str[7];
     static uint32_t start, btw;
     static uint8_t tries;
     GSM_CONN_t* conn = (GSM_CONN_t *)Pointers.Ptr1;
@@ -2094,7 +2104,7 @@ cmd_gprs_attach_clean:
         
         GSM->ActiveResult = GSM->Events.F.RespCloseOk ? gsmOK : gsmERROR; /* Set result to return */
         
-        __CMD_RESTORE(GSM);                               /* Restore command */
+        __CMD_RESTORE(GSM);                                 /* Restore command */
         __IDLE(GSM);                                        /* Go IDLE */
     } else if (GSM->ActiveCmd == CMD_GPRS_CIPSEND) {
         __CMD_SAVE(GSM);                                    /* Save command */
@@ -2179,6 +2189,7 @@ cmd_gprs_attach_clean:
         }        
         __CMD_RESTORE(GSM);                                 /* Restore command */
         __IDLE(GSM);                                        /* Go IDLE mode */
+#if GSM_HTTP
     } else if (GSM->ActiveCmd == CMD_GPRS_HTTPBEGIN) {
         __CMD_SAVE(GSM);                                    /* Save command */
         
@@ -2276,8 +2287,10 @@ cmd_gprs_httpsend_clean:                                    /* Clean everything 
         /**** HTTP METHOD ****/
         __RST_EVENTS_RESP(GSM);                             /* Reset events */
         UART_SEND_STR(FROMMEM("AT+HTTPACTION="));           /* Send command */
-        ch = ((uint8_t)GSM->HTTP.Method) + '0';
-        UART_SEND_CH(&ch);
+        {
+            uint8_t ch = ((uint8_t)GSM->HTTP.Method) + '0';
+            UART_SEND_CH(&ch);
+        }
         UART_SEND_STR(GSM_CRLF);
         StartCommand(GSM, CMD_GPRS_HTTPACTION, NULL);       /* Start command */
         
@@ -2349,6 +2362,8 @@ cmd_gprs_httpexecute_clean:                                 /* Clean everything 
         GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
         
         __IDLE(GSM);                                        /* Go IDLE mode */
+#endif /* GSM_HTTP */
+#if GSM_FTP
     } else if (GSM->ActiveCmd == CMD_GPRS_FTPBEGIN) {       /* Start FTP session */
         __CMD_SAVE(GSM);                                    /* Save command */
         
@@ -2735,6 +2750,7 @@ cmd_gprs_ftpupbegin_clean:                                  /* Clean everything 
         
         __CMD_RESTORE(GSM);                                 /* Restore command */
         __IDLE(GSM);                                        /* Go IDLE mode */
+#endif /* GSM_FTP */
     } else if (GSM->ActiveCmd == CMD_GPRS_CIPGSMLOC) {      /* Get location */
         __CMD_SAVE(GSM);                                    /* Save command */
         
@@ -3031,6 +3047,7 @@ GSM_Result_t GSM_Update(gvol GSM_t* GSM) {
 #endif
         BUFFER_Read(Buff, (uint8_t *)&ch, 1)                /* Read single character from buffer */
     ) {
+#if GSM_HTTP
         if (GSM->ActiveCmd == CMD_GPRS_HTTPREAD && GSM->Flags.F.HTTP_Read_Data) { /* We are trying to read raw data? */
             GSM->HTTP.Data[GSM->HTTP.BytesRead++] = ch;     /* Save character */
             GSM->HTTP.BytesReadRemaining--;                 /* Decrease number of remaining bytes to read */
@@ -3038,14 +3055,19 @@ GSM_Result_t GSM_Update(gvol GSM_t* GSM) {
                 GSM->Flags.F.HTTP_Read_Data = 0;            /* Reset flag, go back to normal parsing */
                 processedCount = 0;                         /* Stop further processing */
             }
-        } else if (GSM->ActiveCmd == CMD_GPRS_FTPGET && GSM->Flags.F.FTP_Read_Data) {
+        } else 
+#endif /* GSM_HTTP */
+#if GSM_FTP
+        if (GSM->ActiveCmd == CMD_GPRS_FTPGET && GSM->Flags.F.FTP_Read_Data) {
             GSM->FTP.Data[GSM->FTP.BytesRead++] = ch;       /* Save character */
             GSM->FTP.BytesReadRemaining--;                  /* Decrease number of remaining bytes to read */
             if (!GSM->FTP.BytesReadRemaining) {             /* We finished? */
                 GSM->Flags.F.FTP_Read_Data = 0;             /* Reset flag, go back to normal parsing */
                 processedCount = 0;                         /* Stop further processing */
             }
-        } else if (GSM->ActiveCmd == CMD_GPRS_CIPRXGET && GSM->Flags.F.CLIENT_Read_Data) {  /* We are trying to read raw data? */
+        } else 
+#endif /* GSM_FTP */
+        if (GSM->ActiveCmd == CMD_GPRS_CIPRXGET && GSM->Flags.F.CLIENT_Read_Data) {  /* We are trying to read raw data? */
             GSM_CONN_t* conn = (GSM_CONN_t *)Pointers.Ptr1;
             conn->ReceiveData[conn->BytesRead++] = ch;      /* Save character */
             conn->BytesReadRemaining--;                     /* Decrease number of remaining bytes to read */
@@ -3109,6 +3131,9 @@ GSM_Result_t GSM_Update(gvol GSM_t* GSM) {
                             GSM->Flags.F.COPS_Read_Operators = 1;   /* Set COPS scan reading flag */
                             RECEIVED_RESET();               /* Reset received string */
                         }
+                    } else if (RECEIVED_LENGTH() == 24 && strncmp((const char *)Received.Data, FROMMEM("UNDER-VOLTAGE POWER DOWN"), 24) == 0) {
+                        RECEIVED_RESET();
+                        GSM->Flags.F.Call_UV_PD = 1;        /* Power down detected */
                     }
                 break;
             }
@@ -3555,7 +3580,6 @@ GSM_Result_t GSM_PB_Edit(gvol GSM_t* GSM, uint32_t index, const char* name, cons
 }
 
 GSM_Result_t GSM_PB_Delete(gvol GSM_t* GSM, uint32_t index, uint32_t blocking) {
-    __CHECK_INPUTS(index);                                  /* Check valid data */
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_PB_DELETE);                       /* Set active command */
     
@@ -3565,7 +3589,7 @@ GSM_Result_t GSM_PB_Delete(gvol GSM_t* GSM, uint32_t index, uint32_t blocking) {
 }
 
 GSM_Result_t GSM_PB_Get(gvol GSM_t* GSM, uint32_t index, GSM_PB_Entry_t* entry, uint32_t blocking) {
-    __CHECK_INPUTS(index && entry);                         /* Check valid data */
+    __CHECK_INPUTS(entry);                                  /* Check valid data */
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_PB_GET);                          /* Set active command */
     
@@ -3576,7 +3600,7 @@ GSM_Result_t GSM_PB_Get(gvol GSM_t* GSM, uint32_t index, GSM_PB_Entry_t* entry, 
 }
 
 GSM_Result_t GSM_PB_List(gvol GSM_t* GSM, GSM_PB_Entry_t* entries, uint16_t start_index, uint16_t btr, uint16_t* br, uint32_t blocking) {
-    __CHECK_INPUTS(entries && start_index && btr && br);    /* Check valid data */
+    __CHECK_INPUTS(entries && btr && br);                   /* Check valid data */
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_PB_LIST);                         /* Set active command */
     
@@ -3722,6 +3746,7 @@ uint32_t GSM_CONN_DataAvailable(gvol GSM_t* GSM, const gvol GSM_CONN_t* conn, ui
     return conn->BytesRemaining || conn->Flags.F.RxGetReceived; /* At least one should be more than zero */
 }
 
+#if GSM_HTTP
 /******************************************************************************/
 /***                                 HTTP API                                **/
 /******************************************************************************/
@@ -3800,7 +3825,9 @@ GSM_Result_t GSM_HTTP_Read(gvol GSM_t* GSM, void* data, uint32_t btr, uint32_t* 
 uint32_t GSM_HTTP_DataAvailable(gvol GSM_t* GSM, uint32_t blocking) {
     return GSM->HTTP.BytesReceived - GSM->HTTP.BytesReadTotal;
 }
+#endif /* GSM_HTTP */
 
+#if GSM_FTP
 /******************************************************************************/
 /***                                 FTP API                                 **/
 /******************************************************************************/
@@ -3934,3 +3961,4 @@ GSM_Result_t GSM_FTP_UploadEnd(gvol GSM_t* GSM, uint32_t blocking) {
     
     __RETURN_BLOCKING(GSM, blocking, 1000);                 /* Return with blocking support */
 }
+#endif /* GSM_FTP */
