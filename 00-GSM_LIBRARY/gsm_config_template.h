@@ -34,10 +34,13 @@
 #ifndef GSM_CONF_H
 #define GSM_CONF_H 100
 
-/* C++ detection */
-#ifdef __cplusplus
-extern "C" {
-#endif
+/**************************************************************************/
+/**************************************************************************/
+/**************************************************************************/
+/*    Edit file name to gsm_config.h and edit values for your platform    */
+/**************************************************************************/
+/**************************************************************************/
+/**************************************************************************/
 
 /**
  * \defgroup CONFIG
@@ -46,14 +49,22 @@ extern "C" {
  */
 
 /**
- * \brief  GSM Receive buffer size in units of bytes for processing.
+ * \brief  GSM receive buffer size in units of bytes for processing
  *
- *         Use as much as possible, but not less than 128 bytes.
+ * \note   Use as much as possible, but not less than 128 bytes.
+ *         For faster CPU you may be allowed to use smaller buffer.
  */
 #define GSM_BUFFER_SIZE                 512
 
 /**
- * \brief  GSM RTOS support enabled (1) or disabled (0)
+ * \brief  Enables (1) or disables (0) RTOS support (re-entrancy) for library.
+ *
+ *         When using RTOS, some additional configuration must be set, listed below.
+ *
+ * \note   This mode should be enabled only when processing function (GSM_Update) is called from separate thread.
+ *         When everything is done in single thread regarding GSM, there is no need for this feature to be enabled.
+ *
+ * \note   When this mode is enabled, RTOS dependant locking system is required for thread synchronization.
  */
 #define GSM_RTOS                        0
 
@@ -70,7 +81,9 @@ extern "C" {
 /**
  * \brief  Async data processing enabled (1) or disabled (0)
  *
- * \note   This feature has sense when in non-RTOS mode and you wanna process income data async (in interrupt)
+ * \note   This feature has sense when in non-RTOS mode and you wanna process income data async (in interrupt).
+ * 
+ *         When this feature is enabled, you HAVE TO do processing (GSM_Update) in interrupt.
  */
 #define GSM_ASYNC                       1
 
@@ -88,12 +101,23 @@ extern "C" {
 #define GSM_MAX_RECEIVED_SMS_INFO       3
 
 /**
+ * \brief  Enables (1) or disables (0) functions for HTTP API features on GSM device
+ *
+ * \note   When disabled, there is no support for built-in HTTP processing on GSM module, 
+ *         all HTTP related functions are disabled.
+ */
+#define GSM_HTTP                        1
+
+/**
+ * \brief  Enables (1) or disables (0) functions for FTP API features on GSM device
+ *
+ * \note   When disabled, there is no support for built-in FTP processing on GSM module, 
+ *         all FTP related functions are disabled.
+ */
+#define GSM_FTP                         1
+
+/**
  * \}
  */
-
-/* C++ detection */
-#ifdef __cplusplus
-}
-#endif
 
 #endif
