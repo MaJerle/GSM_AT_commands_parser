@@ -1059,7 +1059,7 @@ void ParseReceived(gvol GSM_t* GSM, Received_t* Received) {
         
         /* Below statements can be received even if no command active */
         if (strncmp(str, FROMMEM("+CPIN:"), 6) == 0) {      /* For SIM status response */
-            ParseCPIN(GSM, (GSM_CPIN_t *)&GSM->CPIN, str + 7);  /* Parse +CPIN statement */
+            ParseCPIN(GSM, (GSM_CPIN_t *)&GSM->CPIN, str[6] == ' ' ? str + 7 : str + 6);    /* Parse +CPIN statement */
         } else if (strncmp(str, FROMMEM("+CFUN"), 5) == 0) {/* Phone functionality */
             ParseCFUN(GSM, (GSM_Func_t *)&GSM->Func, str + 7);  /* Parse CFUN response */
             if (Pointers.Ptr1) {                            /* When command executed */
@@ -3484,10 +3484,11 @@ GSM_Result_t GSM_SMS_List(gvol GSM_t* GSM, GSM_SMS_ReadType_t type, GSM_SMS_Entr
     *entries_read = 0;                                      /* Reset variable */
     
     switch (type) {                                         /* Check for proper type */
-        case GSM_SMS_ReadType_ALL: Pointers.CPtr1 = FROMMEM("ALL"); break;
-        case GSM_SMS_ReadType_READ: Pointers.CPtr1 = FROMMEM("READ"); break;
-        case GSM_SMS_ReadType_UNREAD: Pointers.CPtr1 = FROMMEM("UNREAD"); break;
-        default: return gsmPARERROR;
+        case GSM_SMS_ReadType_READ:     Pointers.CPtr1 = FROMMEM("READ");   break;
+        case GSM_SMS_ReadType_UNREAD:   Pointers.CPtr1 = FROMMEM("UNREAD"); break;
+        case GSM_SMS_ReadType_ALL:
+        default: 
+            Pointers.CPtr1 = FROMMEM("ALL");
     }
     Pointers.Ptr1 = entries;                                /* Save pointer to entries */
     Pointers.Ptr2 = entries_read;                           /* Save pointer to entries we already read */
@@ -3510,36 +3511,24 @@ GSM_Result_t GSM_SMS_MassDelete(gvol GSM_t* GSM, GSM_SMS_MassDelete_t type, uint
     __ACTIVE_CMD(GSM, CMD_SMS_MASSDELETE);                  /* Set active command */
     
     switch (type) {                                         /* Select MASS delete type */
-        case GSM_SMS_MassDelete_Read:
-            Pointers.CPtr1 = FROMMEM("READ");
-            break;
-        case GSM_SMS_MassDelete_Unread:
-            Pointers.CPtr1 = FROMMEM("UNREAD");
-            break;
-        case GSM_SMS_MassDelete_Sent:
-            Pointers.CPtr1 = FROMMEM("SENT");
-            break;
-        case GSM_SMS_MassDelete_Unsent:
-            Pointers.CPtr1 = FROMMEM("UNSENT");
-            break;
-        case GSM_SMS_MassDelete_Inbox:
-            Pointers.CPtr1 = FROMMEM("INBOX");
-            break;
+        case GSM_SMS_MassDelete_Read:   Pointers.CPtr1 = FROMMEM("READ");   break;
+        case GSM_SMS_MassDelete_Unread: Pointers.CPtr1 = FROMMEM("UNREAD"); break;
+        case GSM_SMS_MassDelete_Sent:   Pointers.CPtr1 = FROMMEM("SENT");   break;
+        case GSM_SMS_MassDelete_Unsent: Pointers.CPtr1 = FROMMEM("UNSENT"); break;
+        case GSM_SMS_MassDelete_Inbox:  Pointers.CPtr1 = FROMMEM("INBOX");  break;
         case GSM_SMS_MassDelete_All:
-            Pointers.CPtr1 = FROMMEM("ALL");
-            break;
         default:
-            break;
+            Pointers.CPtr1 = FROMMEM("ALL");
     }
-    __RETURN_BLOCKING(GSM, blocking, 50);                   /* Return with blocking possibility */   
+    __RETURN_BLOCKING(GSM, blocking, 30000);                /* Return with blocking possibility */   
 }
 
 GSM_SmsInfo_t* GSM_SMS_GetReceivedInfo(gvol GSM_t* GSM, uint32_t blocking) {
     uint8_t i = 0;
     for (i = 0; i < GSM_MAX_RECEIVED_SMS_INFO; i++) {
-        if (GSM->SmsInfos[i].Flags.F.Received) {            /* Check if any new SMS */
-            GSM->SmsInfos[i].Flags.F.Received = 0;          /* Reset flag */
+        if (GSM->SmsInfos[i].Flags.F.Received && !GSM->SmsInfos[i].Flags.F.Used) {  /* Check if any new SMS */
             GSM->SmsInfos[i].Flags.F.Used = 1;              /* Set used flag */
+            GSM->SmsInfos[i].Flags.F.Received = 0;          /* Reset flag */
             return (GSM_SmsInfo_t *)&GSM->SmsInfos[i];      /* Get pointer value */
         }
     }
@@ -3548,8 +3537,10 @@ GSM_SmsInfo_t* GSM_SMS_GetReceivedInfo(gvol GSM_t* GSM, uint32_t blocking) {
 }
 
 GSM_Result_t GSM_SMS_ClearReceivedInfo(gvol GSM_t* GSM, GSM_SmsInfo_t* info, uint32_t blocking) {
+    if (!info) {
+        return gsmERROR;
+    }
     info->Flags.Value = 0;                                  /* Reset all flags */
-    
     return gsmOK;
 }
 
@@ -3568,7 +3559,7 @@ GSM_Result_t GSM_PB_Add(gvol GSM_t* GSM, const char* name, const char* number, u
 }
 
 GSM_Result_t GSM_PB_Edit(gvol GSM_t* GSM, uint32_t index, const char* name, const char* number, uint32_t blocking) {
-    __CHECK_INPUTS(index && name && number);                /* Check valid data */
+    __CHECK_INPUTS(name && number);                         /* Check valid data */
     __CHECK_BUSY(GSM);                                      /* Check busy status */
     __ACTIVE_CMD(GSM, CMD_PB_EDIT);                         /* Set active command */
     
@@ -3837,15 +3828,9 @@ GSM_Result_t GSM_FTP_Begin(gvol GSM_t* GSM, GSM_FTP_Mode_t mode, GSM_FTP_SSL_t s
     
     Pointers.CPtr1 = FROMMEM(mode ? "1" : "0");
     switch (ssl) {
-        case GSM_FTP_SSL_Disable:
-            Pointers.CPtr2 = FROMMEM("0");
-            break;
-        case GSM_FTP_SSL_Implicit:
-            Pointers.CPtr2 = FROMMEM("1");
-            break;
-        case GSM_FTP_SSL_Explicit:
-            Pointers.CPtr2 = FROMMEM("2");
-            break;
+        case GSM_FTP_SSL_Disable:   Pointers.CPtr2 = FROMMEM("0"); break;
+        case GSM_FTP_SSL_Implicit:  Pointers.CPtr2 = FROMMEM("1"); break;
+        case GSM_FTP_SSL_Explicit:  Pointers.CPtr2 = FROMMEM("2"); break;
     }
     
     __RETURN_BLOCKING(GSM, blocking, 1000);                 /* Return with blocking support */
@@ -3926,15 +3911,9 @@ GSM_Result_t GSM_FTP_UploadBegin(gvol GSM_t* GSM, const char* folder, const char
     Pointers.CPtr1 = folder;                                /* Save pointers */
     Pointers.CPtr2 = file;
     switch (mode) {                                         /* Set FTP upload mode */
-        case GSM_FTP_UploadMode_Append:
-            Pointers.CPtr3 = FROMMEM("APPE");
-            break;
-        case GSM_FTP_UploadMode_StoreUnique:
-            Pointers.CPtr3 = FROMMEM("STOU");
-            break;
-        case GSM_FTP_UploadMode_Store:
-            Pointers.CPtr3 = FROMMEM("STOR");
-            break;
+        case GSM_FTP_UploadMode_Append:         Pointers.CPtr3 = FROMMEM("APPE"); break;
+        case GSM_FTP_UploadMode_StoreUnique:    Pointers.CPtr3 = FROMMEM("STOU"); break;
+        case GSM_FTP_UploadMode_Store:          Pointers.CPtr3 = FROMMEM("STOR"); break;
     }
     
     __RETURN_BLOCKING(GSM, blocking, 75000);                /* Return with blocking support */
