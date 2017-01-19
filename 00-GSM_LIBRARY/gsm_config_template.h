@@ -117,6 +117,34 @@
 #define GSM_FTP                         1
 
 /**
+ * \brief  Enables (1) or disables (0) functions for PHONEBOOK API features on GSM device
+ *
+ * \note   When disabled, there is no support for built-in PHONEBOOK processing on GSM module, 
+ *         all PHONEBOOK related functions are disabled.
+ */
+#define GSM_PHONEBOOK                   1
+
+/**
+ * \brief  Enables (1) or disables (0) functions for CALL API features on GSM device
+ *
+ * \note   When disabled, there is no support for built-in CALL processing on GSM module, 
+ *         all CALL related functions are disabled.
+ *
+ * \note   When CALL is received, there is no notification or event for user.
+ */
+#define GSM_CALL                        1
+
+/**
+ * \brief  Enables (1) or disables (0) functions for SMS API features on GSM device
+ *
+ * \note   When disabled, there is no support for built-in SMS processing on GSM module, 
+ *         all SMS related functions are disabled.
+ *
+ * \note   When SMS is received, there is no notification or event for user.
+ */
+#define GSM_SMS                         1
+
+/**
  * \}
  */
 

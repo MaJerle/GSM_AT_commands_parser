@@ -67,10 +67,19 @@ extern "C" {
 
 /* Backward compatibility */
 #if !defined(GSM_HTTP)
-#define GSM_HTTP          1
+#define GSM_HTTP            1
 #endif
 #if !defined(GSM_FTP)
-#define GSM_FTP           1
+#define GSM_FTP             1
+#endif
+#if !defined(GSM_PHONEBOOK)
+#define GSM_PHONEBOOK       1
+#endif
+#if !defined(GSM_CALL)
+#define GSM_CALL            1
+#endif
+#if !defined(GSM_SMS)
+#define GSM_SMS             1
 #endif
 
 /**
@@ -79,8 +88,8 @@ extern "C" {
  * @{
  */
 
-#define gvol          volatile
-#define gstatic       static
+#define gvol                volatile
+#define gstatic             static
 
 /* Configuration defines */
 
@@ -89,8 +98,8 @@ extern "C" {
  */
  
 /**
- * \defgroup GSM_Typedefs
- * \brief           Library Typedefs
+ * \defgroup      GSM_Typedefs
+ * \brief         Library Typedefs
  * \{
  */
 
@@ -488,9 +497,13 @@ typedef enum {
     gsmEventDataReceived,                                   /*!< A new data received on connection */
     gsmEventDataSent,                                       /*!< Data were sent on connection */
     gsmEventDataSentError,                                  /*!< Data sent error */
+#if GSM_CALL
     gsmEventCallCLCC,                                       /*!< CLCC Call info was received with call data */
     gsmEventCallRING,                                       /*!< RING was received on call */
+#endif /* GSM_CALL */
+#if GSM_SMS
     gsmEventSMSCMTI,                                        /*!< SMS info was received */
+#endif /* GSM_SMS */
     gsmEventGPRSAttached,                                   /*!< GPRS has been attached */
     gsmEventGPRSAttachError,                                /*!< Error while trying to attach GPRS */
     gsmEventGPRSDetached,                                   /*!< GPRS has been detached */
@@ -531,14 +544,7 @@ typedef struct _GSM_t {
     gvol uint32_t ActiveCmdTimeout;                         /*!< Timeout in units of MS for active command to finish */
     
     gvol GSM_NetworkStatus_t NetworkStatus;                 /*!< Network status enumeration */
-    
-    /*!< SMS management */
-    GSM_SMS_t SMS;                                          /*!< SMS Send object */
-    GSM_SmsInfo_t SmsInfos[GSM_MAX_RECEIVED_SMS_INFO];      /*!< Received SMS info object */
-    
-    /*!< Call management */
-    GSM_CallInfo_t CallInfo;                                /*!< Call info object */
-    
+
     /*!< SIM status */
     GSM_CPIN_t CPIN;                                        /*!< SIM status */
     
@@ -550,6 +556,16 @@ typedef struct _GSM_t {
     
     /*!< Plain connections check */
     GSM_CONN_t* Conns[6];                                   /*!< Array of pointers to connections */
+    
+#if GSM_SMS
+    /*!< SMS management */
+    GSM_SMS_t SMS;                                          /*!< SMS Send object */
+    GSM_SmsInfo_t SmsInfos[GSM_MAX_RECEIVED_SMS_INFO];      /*!< Received SMS info object */
+#endif /* GSM_SMS */
+#if GSM_CALL   
+    /*!< Call management */
+    GSM_CallInfo_t CallInfo;                                /*!< Call info object */
+#endif /* GSM_CALL */
     
 #if GSM_HTTP
     /*!< HTTP */
@@ -576,14 +592,17 @@ typedef struct _GSM_t {
             uint8_t PIN_Error:1;                            /*!< Set to 1 when PIN is not connect */
             uint8_t PUK_Ok:1;                               /*!< Set to 1 when PUK is entered correct */
             uint8_t PUK_Error:1;                            /*!< Set to 1 when PUK is not correct */
-            
+
+#if GSM_SMS                
             uint8_t SMS_SendOk:1;                           /*!< SMS was successfully sent */
             uint8_t SMS_SendError:1;                        /*!< We got an error trying to send SMS */
             uint8_t SMS_Read_Data:1;                        /*!< Set to 1 when we are reading actual SMS data */
             uint8_t SMS_CMTI_Received:1;                    /*!< Set to 1 when CMTI SMS info is received and callback should be called */
-            
+#endif /* GSM_SMS */
+#if GSM_CALL            
             uint8_t CALL_CLCC_Received:1;                   /*!< Set to 1 when CLCC call info is received and callback should be called */
             uint8_t CALL_RING_Received:1;                   /*!< Set to 1 when RING is received and callback should be called */
+#endif /* GSM_CALL */
             
             uint8_t ReadSingleLineDataRespond:1;            /*!< Set to 1 when we have to read response from command like AT+CGMI. Data is returned as plain text without any special command before */
             

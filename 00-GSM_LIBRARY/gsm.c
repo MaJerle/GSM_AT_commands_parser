@@ -328,13 +328,35 @@ gstatic Pointers_t Pointers;                                /* Pointers object *
 gstatic gvol GSM_t* GSM;                                    /* Working pointer to GSM_t structure */
 
 gstatic
-struct pt pt_GEN, pt_INFO, pt_PIN, pt_CALL, pt_SMS, pt_PB, pt_DATETIME, pt_GPRS, pt_OP;
+struct pt pt_GEN, pt_INFO, pt_PIN, pt_DATETIME, pt_GPRS, pt_OP;
+#if GSM_CALL
+gstatic struct pt pt_CALL;
+#endif /* GSM_CALL */
+#if GSM_SMS
+gstatic struct pt pt_SMS;
+#endif /* GSM_SMS */
+#if GSM_PHONEBOOK
+gstatic struct pt pt_PB;
+#endif /* GSM_PHONEBOOK */
 
-#define __RESET_THREADS(GSM) do {                                           \
-PT_INIT(&pt_GEN); PT_INIT(&pt_INFO); PT_INIT(&pt_PIN); PT_INIT(&pt_CALL);   \
-PT_INIT(&pt_SMS); PT_INIT(&pt_PB); PT_INIT(&pt_DATETIME); PT_INIT(&pt_GPRS);\
-PT_INIT(&pt_OP);                                                            \
-} while (0)
+gstatic 
+void __RESET_THREADS(gvol GSM_t* GSM) {
+    PT_INIT(&pt_GEN);
+    PT_INIT(&pt_INFO);
+    PT_INIT(&pt_PIN);
+#if GSM_CALL
+    PT_INIT(&pt_CALL);
+#endif /* GSM_CALL */
+#if GSM_SMS
+    PT_INIT(&pt_SMS);
+#endif /* GSM_SMS */
+    PT_INIT(&pt_DATETIME);
+    PT_INIT(&pt_GPRS);
+    PT_INIT(&pt_OP); 
+#if GSM_PHONEBOOK
+    PT_INIT(&pt_PB);
+#endif /* GSM_PHONEBOOK */
+}
 
 /******************************************************************************/
 /******************************************************************************/
@@ -425,7 +447,6 @@ float ParseFloatNumber(const char* ptr, uint8_t* cnt) {
 }
 
 /* Parses date from string and stores to date structure */
-gstatic
 void ParseDATE(gvol GSM_t* GSM, GSM_Date_t* DateStr, const char* str) {
     uint8_t len = 0, i;
     
@@ -437,7 +458,6 @@ void ParseDATE(gvol GSM_t* GSM, GSM_Date_t* DateStr, const char* str) {
 }
 
 /* Parses time from string and stores to time structure */
-gstatic
 void ParseTIME(gvol GSM_t* GSM, GSM_Time_t* TimeStr, const char* str) {
     uint8_t len = 0, i;
     
@@ -448,6 +468,55 @@ void ParseTIME(gvol GSM_t* GSM, GSM_Time_t* TimeStr, const char* str) {
     TimeStr->Seconds = ParseNumber(&str[len], &i);
 }
 
+#if GSM_CALL
+/* Parses +CLCC statement */
+gstatic
+void ParseCLCC(gvol GSM_t* GSM, gvol GSM_CallInfo_t* CallInfo, const char* str) {
+    uint8_t cnt = 0;
+    
+    CallInfo->ID = ParseNumber(str, &cnt);                  /* Get call ID */
+    str += ++cnt;
+    CallInfo->Dir = (GSM_CallDir_t)ParseNumber(str, &cnt);  /* Get call direction */
+    str += ++cnt;
+    CallInfo->State = (GSM_CallState_t)ParseNumber(str, &cnt);  /* Get call state */
+    str += ++cnt;
+    CallInfo->Type = (GSM_CallType_t)ParseNumber(str, &cnt);/* Get call type */
+    str += ++cnt;
+    CallInfo->IsMultiparty = ParseNumber(str, &cnt);        /* Get multiparty status */
+    str += ++cnt;
+    
+    /* Parse phone number */
+    if (*str == '"') {                                      /* Remmove start " character */
+        str++;
+    }
+    CallInfo->Number[0] = 0;                                /* Clear number */
+    cnt = 0;
+    while (*str && *str != '"') {                           /* Read string until next " character */
+        CallInfo->Number[cnt++] = *str++;                   /* Save number as string */
+        CallInfo->Number[cnt] = 0;
+    }
+    if (*str == '"') {                                      /* Ignore end " character */
+        str++;
+    }
+    str++;                                                  /* Ignore , character */
+    
+    CallInfo->AddressType = ParseNumber(str, &cnt);         /* Get address number */
+    str += ++cnt;
+    
+    /* Parse phone book name if exists */
+    CallInfo->Name[0] = 0;
+    if (*str == '"') {
+        str++;
+        cnt = 0;
+        while (*str && *str != '"') {
+            CallInfo->Name[cnt++] = *str++;                 /* Save number as string */
+            CallInfo->Name[cnt] = 0;
+        }
+    }
+}
+#endif /* GSM_CALL */
+
+#if GSM_SMS
 /* Parses +CMGR response for reading SMS data */
 gstatic
 void ParseCMGR(gvol GSM_t* GSM, GSM_SMS_Entry_t* sms, const char* str) {
@@ -494,52 +563,6 @@ void ParseCMGL(gvol GSM_t* GSM, GSM_SMS_Entry_t* sms, const char* str) {
     ParseCMGR(GSM, sms, str);                               /* From here, +CMGL is the same as +CMGR so use the same function as used in +CMGR response */
 }
 
-/* Parses +CLCC statement */
-gstatic
-void ParseCLCC(gvol GSM_t* GSM, gvol GSM_CallInfo_t* CallInfo, const char* str) {
-    uint8_t cnt = 0;
-    
-    CallInfo->ID = ParseNumber(str, &cnt);                  /* Get call ID */
-    str += ++cnt;
-    CallInfo->Dir = (GSM_CallDir_t)ParseNumber(str, &cnt);  /* Get call direction */
-    str += ++cnt;
-    CallInfo->State = (GSM_CallState_t)ParseNumber(str, &cnt);  /* Get call state */
-    str += ++cnt;
-    CallInfo->Type = (GSM_CallType_t)ParseNumber(str, &cnt);/* Get call type */
-    str += ++cnt;
-    CallInfo->IsMultiparty = ParseNumber(str, &cnt);        /* Get multiparty status */
-    str += ++cnt;
-    
-    /* Parse phone number */
-    if (*str == '"') {                                      /* Remmove start " character */
-        str++;
-    }
-    CallInfo->Number[0] = 0;                                /* Clear number */
-    cnt = 0;
-    while (*str && *str != '"') {                           /* Read string until next " character */
-        CallInfo->Number[cnt++] = *str++;                   /* Save number as string */
-        CallInfo->Number[cnt] = 0;
-    }
-    if (*str == '"') {                                      /* Ignore end " character */
-        str++;
-    }
-    str++;                                                  /* Ignore , character */
-    
-    CallInfo->AddressType = ParseNumber(str, &cnt);         /* Get address number */
-    str += ++cnt;
-    
-    /* Parse phone book name if exists */
-    CallInfo->Name[0] = 0;
-    if (*str == '"') {
-        str++;
-        cnt = 0;
-        while (*str && *str != '"') {
-            CallInfo->Name[cnt++] = *str++;                 /* Save number as string */
-            CallInfo->Name[cnt] = 0;
-        }
-    }
-}
-
 /* Parses +CMTI statement */
 gstatic
 void ParseCMTI(gvol GSM_t* GSM, gvol GSM_SmsInfo_t* SmsInfo, const char* str) {
@@ -554,6 +577,7 @@ void ParseCMTI(gvol GSM_t* GSM, gvol GSM_SmsInfo_t* SmsInfo, const char* str) {
     str += 4;
     SmsInfo->Position = ParseNumber(str, NULL);
 }
+#endif /* GSM_SMS */
 
 /* Parses +CPIN statement */
 gstatic 
@@ -583,6 +607,7 @@ void ParseCFUN(gvol GSM_t* GSM, GSM_Func_t* func, char* str) {
     *func = (GSM_Func_t)ParseNumber(str, NULL);
 }
 
+#if GSM_PHONEBOOK
 /* Parses +CPBR statement */
 gstatic
 void ParseCPBR(gvol GSM_t* GSM, GSM_PB_Entry_t* entry, const char* str) {
@@ -621,6 +646,7 @@ void ParseCPBR(gvol GSM_t* GSM, GSM_PB_Entry_t* entry, const char* str) {
         str++;
     }
 }
+#endif /* GSM_PHONEBOOK */
 
 /* Parses IP string */
 gstatic
@@ -1012,9 +1038,12 @@ void ParseReceived(gvol GSM_t* GSM, Received_t* Received) {
     }
     
     /* Some special cases */
+#if GSM_CALL
     if (strcmp(str, GSM_RING) == 0) {
         GSM->Flags.F.CALL_RING_Received = 1;                /* Set flag for callbacks */
-    } else if (strcmp(str, GSM_BUSY) == 0) {
+    } else 
+#endif /* GSM_CALL */
+    if (strcmp(str, GSM_BUSY) == 0) {
         
     } else if (strcmp(str, GSM_NO_CARRIER) == 0) {
         
@@ -1023,9 +1052,9 @@ void ParseReceived(gvol GSM_t* GSM, Received_t* Received) {
     if (*str == '+' && !is_error) {                         /* For statements starting with '+' sign */     
         if (GSM->ActiveCmd == CMD_GPRS_CREG && strncmp(str, FROMMEM("+CREG:"), 6) == 0) {
             ParseCREG(GSM, &str[7]);                        /* Parse CREG response */
-        } else if (CMD_IS_ACTIVE_GPRS(GSM)) {
-        
-        } else if (CMD_IS_ACTIVE_SMS(GSM)) {                /* Currently active command is regarding SMS */
+        }
+#if GSM_SMS
+        else if (CMD_IS_ACTIVE_SMS(GSM)) {                /* Currently active command is regarding SMS */
             if (GSM->ActiveCmd == CMD_SMS_SEND && strncmp(str, FROMMEM("+CMGS:"), 6) == 0) {  /* We just sent SMS and number in memory is returned */
                 GSM->SMS.SentSMSMemNum = ParseNumber(&str[7], NULL);/* Parse number and save it */
             } else if (GSM->ActiveCmd == CMD_SMS_READ && strncmp(str, FROMMEM("+CMGR:"), 6) == 0) { /* When SMS Read instruction is executed */
@@ -1041,7 +1070,10 @@ void ParseReceived(gvol GSM_t* GSM, Received_t* Received) {
                                                                Activate this command, even if data won't be saved. 
                                                                Data should be flushed from received buffer and ignored! */
             }
-        } else if (CMD_IS_ACTIVE_PB(GSM)) {                 /* Currently active command is regarding PHONEBOOK */
+        }
+#endif /* GSM_SMS */
+#if GSM_PHONEBOOK
+        else if (CMD_IS_ACTIVE_PB(GSM)) {                 /* Currently active command is regarding PHONEBOOK */
             if (strncmp(str, FROMMEM("+CPBR:"), 6) == 0) {
                 ParseCPBR(GSM, (GSM_PB_Entry_t *)Pointers.Ptr1, str + 7);   /* Parse +CPBR statement */
                 if (GSM->ActiveCmd == CMD_PB_LIST) {        /* Check for GETALL or SEARCH commands */
@@ -1056,6 +1088,7 @@ void ParseReceived(gvol GSM_t* GSM, Received_t* Received) {
                 }
             }
         }
+#endif /* GSM_PHONEBOOK */
         
         /* Below statements can be received even if no command active */
         if (strncmp(str, FROMMEM("+CPIN:"), 6) == 0) {      /* For SIM status response */
@@ -1065,10 +1098,15 @@ void ParseReceived(gvol GSM_t* GSM, Received_t* Received) {
             if (Pointers.Ptr1) {                            /* When command executed */
                 *(GSM_Func_t *)Pointers.Ptr1 = GSM->Func;   /* Copy value */
             }
-        } else if (strncmp(str, FROMMEM("+CLCC:"), 6) == 0) {   /* Call informations changes */
+        } 
+#if GSM_CALL
+        else if (strncmp(str, FROMMEM("+CLCC:"), 6) == 0) {   /* Call informations changes */
             ParseCLCC(GSM, &GSM->CallInfo, str + 7);        /* Parse +CLCC statement */
             GSM->Flags.F.CALL_CLCC_Received = 1;            /* Set flag for callback */
-        } else if (strncmp(str, FROMMEM("+CMTI:"), 6) == 0) {
+        }
+#endif
+#if GSM_SMS
+        else if (strncmp(str, FROMMEM("+CMTI:"), 6) == 0) {
             uint8_t i = 0;
             for (i = 0; i < GSM_MAX_RECEIVED_SMS_INFO; i++) {
                 if (!GSM->SmsInfos[i].Flags.F.Used && !GSM->SmsInfos[i].Flags.F.Received) { /* Check if available memory */
@@ -1080,7 +1118,9 @@ void ParseReceived(gvol GSM_t* GSM, Received_t* Received) {
                 }
             }
             GSM->Flags.F.SMS_CMTI_Received = 1;             /* Set flag for callback */
-        } else if (strncmp(str, FROMMEM("+CIPRXGET:"), 10) == 0) {/* +CIPRXGET statement */
+        } 
+#endif /* GSM_SMS */
+        else if (strncmp(str, FROMMEM("+CIPRXGET:"), 10) == 0) {/* +CIPRXGET statement */
             if (strlen(&str[11]) > 5) {                     /* We executed command */
                 GSM_CONN_t* conn = (GSM_CONN_t *)Pointers.Ptr1;
                 ParseCIPRXGET(GSM, conn, str + 11);         /* Parse statement */
@@ -1475,6 +1515,7 @@ PT_THREAD(PT_Thread_PIN(struct pt* pt, gvol GSM_t* GSM)) {
     PT_END(pt);                                             /* Stop thread */
 }
 
+#if GSM_CALL
 gstatic
 PT_THREAD(PT_Thread_CALL(struct pt* pt, gvol GSM_t* GSM)) {
     char str[6];
@@ -1559,7 +1600,9 @@ PT_THREAD(PT_Thread_CALL(struct pt* pt, gvol GSM_t* GSM)) {
     }
     PT_END(pt);                                             /* End thread */
 }
+#endif /* GSM_CALL */
 
+#if GSM_SMS
 gstatic
 PT_THREAD(PT_Thread_SMS(struct pt* pt, gvol GSM_t* GSM)) {
     char terminate = 26;
@@ -1676,7 +1719,9 @@ PT_THREAD(PT_Thread_SMS(struct pt* pt, gvol GSM_t* GSM)) {
     }
     PT_END(pt);                                             /* End thread */
 }
+#endif /* GSM_SMS */
 
+#if GSM_PHONEBOOK
 gstatic
 PT_THREAD(PT_Thread_PB(struct pt* pt, gvol GSM_t* GSM)) {
     char str[6];
@@ -1778,6 +1823,7 @@ PT_THREAD(PT_Thread_PB(struct pt* pt, gvol GSM_t* GSM)) {
     
     PT_END(pt);                                             /* End thread */
 }
+#endif /* GSM_PHONEBOOK */
 
 gstatic
 PT_THREAD(PT_Thread_DATETIME(struct pt* pt, gvol GSM_t* GSM)) {    
@@ -2854,15 +2900,21 @@ GSM_Result_t ProcessThreads(gvol GSM_t* GSM) {
     if (CMD_IS_ACTIVE_PIN(GSM)) {                           /* On active PIN related command */
         PT_Thread_PIN(&pt_PIN, GSM);
     }
+#if GSM_SMS
     if (CMD_IS_ACTIVE_SMS(GSM)) {                           /* On active SMS related command */
         PT_Thread_SMS(&pt_SMS, GSM);
     }
+#endif /* GSM_SMS */
+#if GSM_CALL
     if (CMD_IS_ACTIVE_CALL(GSM)) {                          /* On active CALL related command */
         PT_Thread_CALL(&pt_CALL, GSM);
     }
+#endif /* GSM_CALL */
+#if GSM_PHONEBOOK
     if (CMD_IS_ACTIVE_PB(GSM)) {                            /* On active PHONEBOOK related command */
         PT_Thread_PB(&pt_PB, GSM);
     }
+#endif /* GSM_PHONEBOOK */
     if (CMD_IS_ACTIVE_DATETIME(GSM)) {                      /* On active DATETIME related command */
         PT_Thread_DATETIME(&pt_DATETIME, GSM);
     }
@@ -2874,7 +2926,7 @@ GSM_Result_t ProcessThreads(gvol GSM_t* GSM) {
     }
 #if !GSM_RTOS && !GSM_ASYNC
     GSM_ProcessCallbacks(GSM);                              /* Process callbacks when not in RTOS or ASYNC mode */
-#endif
+#endif /* !GSM_RTOS && !GSM_ASYNC */
     __RETURN(GSM, gsmOK);
 }
 
@@ -2899,7 +2951,9 @@ GSM_Result_t GSM_Init(gvol GSM_t* G, const char* pin, uint32_t Baudrate, GSM_Eve
     
     /* Set start values */
     GSM->CPIN = GSM_CPIN_Unknown;                           /* Force SIM checking */
+#if GSM_CALL
     GSM->CallInfo.State = GSM_CallState_Disconnect;         /* Set default call state */
+#endif /* GSM_CALL */
     
     GSM->Time = 0;                                          /* Reset time start time */
     BUFFER_Init(Buff, GSM_BUFFER_SIZE, Buffer_Data);        /* Init buffer for receive */
@@ -3077,7 +3131,9 @@ GSM_Result_t GSM_Update(gvol GSM_t* GSM) {
                 conn->Flags.F.CallGetReceived = 0;          /* Reset flag for notification if not already */
                 processedCount = 0;                         /* Stop further processing */
             }
-        } else if (GSM->ActiveCmd == CMD_SMS_READ && GSM->Flags.F.SMS_Read_Data) {  /* We are execution SMS read command and we are trying to read actual SMS data */
+        }
+#if GSM_SMS
+        else if (GSM->ActiveCmd == CMD_SMS_READ && GSM->Flags.F.SMS_Read_Data) {  /* We are execution SMS read command and we are trying to read actual SMS data */
             GSM_SMS_Entry_t* read = (GSM_SMS_Entry_t *) Pointers.Ptr1;  /* Read pointer and cast to SMS entry */
             if (read->DataLen < (sizeof(read->Data) - 1)) { /* Still memory available? */
                 read->Data[read->DataLen++] = ch;           /* Save character */
@@ -3108,7 +3164,9 @@ GSM_Result_t GSM_Update(gvol GSM_t* GSM) {
                 GSM->Flags.F.SMS_Read_Data = 0;             /* Clear flag, no more reading data */
                 processedCount = 0;                         /* Stop further processing */
             }
-        } else if (GSM->Flags.F.COPS_Read_Operators) {
+        }
+#endif /* GSM_SMS */ 
+        else if (GSM->Flags.F.COPS_Read_Operators) {
             if (ch == '\n') {
                 GSM->Flags.F.COPS_Read_Operators = 0;       /* Reset reading structure */ 
             } else {
@@ -3156,6 +3214,7 @@ GSM_Result_t GSM_ProcessCallbacks(gvol GSM_t* GSM) {
         GSM->Flags.F.Call_Idle = 0;
         __CALL_CALLBACK(GSM, gsmEventIdle);
     }
+#if GSM_CALL
     if (__IS_READY(GSM) && GSM->Flags.F.CALL_CLCC_Received) {
         GSM->Flags.F.CALL_CLCC_Received = 0;
         GSM->CallbackParams.CP1 = (GSM_CallInfo_t *)&GSM->CallInfo;
@@ -3166,10 +3225,13 @@ GSM_Result_t GSM_ProcessCallbacks(gvol GSM_t* GSM) {
         GSM->CallbackParams.CP1 = (GSM_CallInfo_t *)&GSM->CallInfo;
         __CALL_CALLBACK(GSM, gsmEventCallRING);
     }
+#endif /* GSM_CALL */
+#if GSM_SMS
     if (__IS_READY(GSM) && GSM->Flags.F.SMS_CMTI_Received) {
         GSM->Flags.F.SMS_CMTI_Received = 0;
         __CALL_CALLBACK(GSM, gsmEventSMSCMTI);
     }
+#endif /* GSM_SMS */
     if (__IS_READY(GSM) && GSM->Flags.F.Call_GPRS_Attached) {
         GSM->Flags.F.Call_GPRS_Attached = 0;
         __CALL_CALLBACK(GSM, gsmEventGPRSAttached);
@@ -3385,6 +3447,7 @@ GSM_Result_t GSM_PUK_Enter(gvol GSM_t* GSM, const char* puk, const char* new_pin
     __RETURN_BLOCKING(GSM, blocking, 1000);                 /* Return with blocking support */
 }
 
+#if GSM_CALL
 /******************************************************************************/
 /***                                CALL API                                 **/
 /******************************************************************************/
@@ -3449,7 +3512,9 @@ GSM_CallInfo_t* GSM_CALL_GetInfo(gvol GSM_t* GSM, uint32_t blocking) {
 GSM_Result_t GSM_CALL_ClearInfo(gvol GSM_t* GSM, GSM_CallInfo_t* info, uint32_t blocking) {
     return gsmOK;
 }
+#endif /* GSM_CALL */
 
+#if GSM_SMS
 /******************************************************************************/
 /***                                 SMS API                                 **/
 /******************************************************************************/
@@ -3543,7 +3608,9 @@ GSM_Result_t GSM_SMS_ClearReceivedInfo(gvol GSM_t* GSM, GSM_SmsInfo_t* info, uin
     info->Flags.Value = 0;                                  /* Reset all flags */
     return gsmOK;
 }
+#endif /* GSM_SMS */
 
+#if GSM_PHONEBOOK
 /******************************************************************************/
 /***                              PHONEBOOK API                              **/
 /******************************************************************************/
@@ -3616,6 +3683,8 @@ GSM_Result_t GSM_PB_Search(gvol GSM_t* GSM, const char* search, GSM_PB_Entry_t* 
     
     __RETURN_BLOCKING(GSM, blocking, 1000);                 /* Return with blocking support */
 }
+#endif /* GSM_PHONEBOOK */
+
 /******************************************************************************/
 /***                              DATETIME API                               **/
 /******************************************************************************/
