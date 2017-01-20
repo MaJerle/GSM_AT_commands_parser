@@ -331,7 +331,7 @@ typedef struct _GSM_CONN_t {
 } GSM_CONN_t;
 
 /**
- * \brief         HTTP suppoerted request methods
+ * \brief         HTTP supported request methods
  */
 typedef enum _GSM_HTTP_Method_t {
     GSM_HTTP_Method_GET = 0x00,                             /*!< HTTP method GET */
@@ -492,7 +492,7 @@ typedef enum _GSM_Func_t {
 /**
  * \brief         Event enumeration for callback
  */
-typedef enum {
+typedef enum _GSM_Event_t {
     gsmEventIdle = 0x00,                                    /*!< Stack went idle */
     gsmEventDataReceived,                                   /*!< A new data received on connection */
     gsmEventDataSent,                                       /*!< Data were sent on connection */
