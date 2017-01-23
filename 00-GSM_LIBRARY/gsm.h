@@ -147,13 +147,13 @@ typedef enum _GSM_CallType_t {
  * \brief         Call status enumeration
  */
 typedef enum _GSM_CallState_t {
-    GSM_CallState_Active = 0x00,                            /*!< Call is active */
+    GSM_CallState_Active = 0x00,                            /*!< Call is active, we have answered to someone or someone has answer to our call */
     GSM_CallState_Held = 0x01,                              /*<! Call is held */
-    GSM_CallState_Dialing = 0x02,                           /*<! Call is dialing */
+    GSM_CallState_Dialing = 0x02,                           /*<! Call is dialing, we are calling someone */
     GSM_CallState_Alerting = 0x03,                          /*<! Call is alerting */
-    GSM_CallState_Incoming = 0x04,                          /*<! Call is incoming */
+    GSM_CallState_Incoming = 0x04,                          /*<! Call is incoming, waiting our reaction */
     GSM_CallState_Waiting = 0x05,                           /*<! Call is waiting */
-    GSM_CallState_Disconnect = 0x06                         /*<! Call is disconnected */
+    GSM_CallState_Disconnect = 0x06                         /*<! Call is disconnected, call is finished */
 } GSM_CallState_t;
 
 /**
@@ -185,7 +185,9 @@ typedef enum _GSM_SMS_MassDelete_t {
 typedef enum _GSM_SMS_ReadType_t {
     GSM_SMS_ReadType_ALL,                                   /*!< List all SMS entries */
     GSM_SMS_ReadType_READ,                                  /*!< List read entries only */
-    GSM_SMS_ReadType_UNREAD                                 /*!< List unread entries only */
+    GSM_SMS_ReadType_UNREAD,                                /*!< List unread entries only */
+    GSM_SMS_ReadType_SENT,                                  /*!< Read stored sent messages */
+    GSM_SMS_ReadType_UNSENT                                 /*!< Read stored unsent messages */
 } GSM_SMS_ReadType_t;
 
 /**
@@ -264,6 +266,7 @@ typedef struct _GSM_SmsInfo_t {
         struct {
             uint8_t Received:1;                             /*!< Do we have new SMS info on this structure and was not yet checked */
             uint8_t Used:1;                                 /*!< Memory used indication */
+            uint8_t UsedByUser:1;                           /*!< Is this structure used by user? */
         } F;
         uint8_t Value;
     } Flags;                                                /*!< Structure flags management */
@@ -851,6 +854,16 @@ GSM_Result_t GSM_INFO_GetSoftwareInfo(gvol GSM_t* GSM, char* rev, uint32_t block
  * \retval        Member of \ref ESP_Result_t enumeration
  */
 GSM_Result_t GSM_INFO_GetBatteryInfo(gvol GSM_t* GSM, GSM_Battery_t* bat, uint32_t blocking);
+
+/**
+ * \brief         Get signal strength information from network
+ * \param[in,out] *GSM: Pointer to working \ref GSM_t structure
+ * \param[out]    *rssi: Pointer to variable to store information about RSSI into.
+ *                  Value of variable is between 0-31 when valid (0 = worst, 32 = best) info or 99 when RSSI is not available
+ * \param[in]     blocking: Status whether this function should be blocking to check for response
+ * \retval        Member of \ref ESP_Result_t enumeration
+ */
+GSM_Result_t GSM_INFO_GetSignalStrength(gvol GSM_t* GSM, uint8_t* rssi, uint32_t blocking);
 
 /**
  * \}

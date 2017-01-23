@@ -120,6 +120,7 @@ typedef struct {
 #define CMD_INFO_CGSN                       ((uint16_t)0x0405)
 #define CMD_INFO_GMR                        ((uint16_t)0x0406)
 #define CMD_INFO_CBC                        ((uint16_t)0x0407)
+#define CMD_INFO_CSQ                        ((uint16_t)0x0408)
 #define CMD_IS_ACTIVE_INFO(p)               ((p)->ActiveCmd >= 0x0400 && (p)->ActiveCmd < 0x0500)
 
 #define CMD_PB                              ((uint16_t)0x0500)
@@ -798,11 +799,17 @@ gstatic
 void ParseCBC(gvol GSM_t* GSM, GSM_Battery_t* bat, const char* str) {
     uint8_t cnt;
     
-    bat->Charging = ParseNumber(str, &cnt);                 /* Check for error */
+    bat->Charging = ParseNumber(str, &cnt);                 /* Check for charging */
     str += cnt + 1;
     bat->Percentage = ParseNumber(str, &cnt);               /* Read battery percentage */
     str += cnt + 1;
     bat->Voltage = ParseNumber(str, &cnt);                  /* Read battery voltage */
+}
+
+/* Parse +CBC statement */
+gstatic 
+void ParseCSQ(gvol GSM_t* GSM, uint8_t* rssi, const char* str) {
+    *rssi = ParseNumber(str, NULL);                         /* Parse strength number */
 }
 
 /* Parse char by char into logical structure */
@@ -1166,6 +1173,10 @@ void ParseReceived(gvol GSM_t* GSM, Received_t* Received) {
             if (Pointers.Ptr1) {                            /* Check valid pointer */
                 ParseCBC(GSM, (GSM_Battery_t *)Pointers.Ptr1, str + 6); /* Parse battery status */
             }
+        } else if (GSM->ActiveCmd == CMD_INFO_CSQ && strncmp(str, FROMMEM("+CSQ"), 4) == 0) {
+            if (Pointers.Ptr1) {                            /* Check valid pointer */
+                ParseCSQ(GSM, (uint8_t *)Pointers.Ptr1, str + 6);   /* Parse battery status */
+            }
         } else if (GSM->ActiveCmd == CMD_OP_COPS_READ && strncmp(str, "+COPS", 5) == 0) {
             ParseCOPSRead(GSM, (GSM_OperatorMode_t *)Pointers.Ptr1, (GSM_OperatorFormat_t *)Pointers.Ptr2, (char *)Pointers.Ptr3, str + 7); /* Parse COPS read statement */
         }
@@ -1398,6 +1409,17 @@ PT_THREAD(PT_Thread_INFO(struct pt* pt, gvol GSM_t* GSM)) {
         UART_SEND_STR(FROMMEM("AT+CBC"));                   /* Send data to device */
         UART_SEND_STR(FROMMEM(GSM_CRLF));
         StartCommand(GSM, CMD_INFO_CBC, NULL);              /* Start command */
+        
+        PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
+                            GSM->Events.F.RespError);       /* Wait for response */
+        
+        GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
+        __IDLE(GSM);                                        /* Go IDLE state */
+    } else if (GSM->ActiveCmd == CMD_INFO_CSQ) {            /* Signal strength info */
+        __RST_EVENTS_RESP(GSM);                             /* Reset events */
+        UART_SEND_STR(FROMMEM("AT+CSQ"));                   /* Send data to device */
+        UART_SEND_STR(FROMMEM(GSM_CRLF));
+        StartCommand(GSM, CMD_INFO_CSQ, NULL);              /* Start command */
         
         PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
                             GSM->Events.F.RespError);       /* Wait for response */
@@ -1703,11 +1725,11 @@ PT_THREAD(PT_Thread_SMS(struct pt* pt, gvol GSM_t* GSM)) {
         
         GSM->ActiveResult = GSM->Events.F.RespOk ? gsmOK : gsmERROR; /* Set result to return */
         __IDLE(GSM);                                        /* Go IDLE mode */  
-    } else if (GSM->ActiveCmd == CMD_SMS_LIST) {            /* Process get all phonebook entries */
+    } else if (GSM->ActiveCmd == CMD_SMS_LIST) {            /* Process get all SMS entries */
         __RST_EVENTS_RESP(GSM);                             /* Reset events */
         UART_SEND_STR(FROMMEM("AT+CMGL=\""));               /* Send command */
         UART_SEND_STR(FROMMEM(Pointers.CPtr1));             /* Send type of SMS messages to list */
-        UART_SEND_STR(FROMMEM("\""));
+        UART_SEND_STR(FROMMEM("\",1"));                     /* Do not change status of messages */
         UART_SEND_STR(GSM_CRLF);
         StartCommand(GSM, CMD_SMS_LIST, NULL);              /* Start command */
         
@@ -3049,7 +3071,7 @@ GSM_Result_t GSM_Init(gvol GSM_t* G, const char* pin, uint32_t Baudrate, GSM_Eve
             break;
         }
         i--;
-    }    
+    }
     GSM->Flags.F.IsBlocking = 0;                            /* Reset blocking calls */
     __IDLE(GSM);                                            /* Process IDLE */
     GSM->Flags.F.Call_Idle = 0;
@@ -3131,9 +3153,9 @@ GSM_Result_t GSM_Update(gvol GSM_t* GSM) {
                 conn->Flags.F.CallGetReceived = 0;          /* Reset flag for notification if not already */
                 processedCount = 0;                         /* Stop further processing */
             }
-        }
+        } else
 #if GSM_SMS
-        else if (GSM->ActiveCmd == CMD_SMS_READ && GSM->Flags.F.SMS_Read_Data) {  /* We are execution SMS read command and we are trying to read actual SMS data */
+        if (GSM->ActiveCmd == CMD_SMS_READ && GSM->Flags.F.SMS_Read_Data) {  /* We are execution SMS read command and we are trying to read actual SMS data */
             GSM_SMS_Entry_t* read = (GSM_SMS_Entry_t *) Pointers.Ptr1;  /* Read pointer and cast to SMS entry */
             if (read->DataLen < (sizeof(read->Data) - 1)) { /* Still memory available? */
                 read->Data[read->DataLen++] = ch;           /* Save character */
@@ -3149,7 +3171,9 @@ GSM_Result_t GSM_Update(gvol GSM_t* GSM) {
         } else if (GSM->ActiveCmd == CMD_SMS_LIST && GSM->Flags.F.SMS_Read_Data) {   /* We received data for SMS as list command */
             if (*(uint16_t *)Pointers.Ptr2 < Pointers.UI) { /* If there is still memory available */
                 GSM_SMS_Entry_t* read = (GSM_SMS_Entry_t *) Pointers.Ptr1;  /* Read pointer and cast to SMS entry */
-                read->Data[read->DataLen++] = ch;           /* Save character */
+                if (read->DataLen < (sizeof(read->Data) - 1)) {
+                    read->Data[read->DataLen++] = ch;           /* Save character */
+                }
                 if (ch == '\n' && prev1_ch == '\r' && read->DataLen >= 2) { /* We finished? */
                     read->DataLen -= 2;                     /* Remove CRLF characters */
                     read->Data[read->DataLen] = 0;          /* Finish this statement */
@@ -3164,9 +3188,9 @@ GSM_Result_t GSM_Update(gvol GSM_t* GSM) {
                 GSM->Flags.F.SMS_Read_Data = 0;             /* Clear flag, no more reading data */
                 processedCount = 0;                         /* Stop further processing */
             }
-        }
+        } else
 #endif /* GSM_SMS */ 
-        else if (GSM->Flags.F.COPS_Read_Operators) {
+        if (GSM->Flags.F.COPS_Read_Operators) {
             if (ch == '\n') {
                 GSM->Flags.F.COPS_Read_Operators = 0;       /* Reset reading structure */ 
             } else {
@@ -3364,6 +3388,16 @@ GSM_Result_t GSM_INFO_GetBatteryInfo(gvol GSM_t* GSM, GSM_Battery_t* bat, uint32
     __RETURN_BLOCKING(GSM, blocking, 1000);                 /* Return with blocking support */
 }
 
+GSM_Result_t GSM_INFO_GetSignalStrength(gvol GSM_t* GSM, uint8_t* rssi, uint32_t blocking) {
+    __CHECK_INPUTS(rssi);                                   /* Check valid data */
+    __CHECK_BUSY(GSM);                                      /* Check busy status */
+    __ACTIVE_CMD(GSM, CMD_INFO_CSQ);                        /* Set active command */
+    
+    Pointers.Ptr1 = rssi;
+    
+    __RETURN_BLOCKING(GSM, blocking, 1000);                 /* Return with blocking support */
+}
+
 /******************************************************************************/
 /***                           NETWORK OPERATOR API                          **/
 /******************************************************************************/
@@ -3549,8 +3583,10 @@ GSM_Result_t GSM_SMS_List(gvol GSM_t* GSM, GSM_SMS_ReadType_t type, GSM_SMS_Entr
     *entries_read = 0;                                      /* Reset variable */
     
     switch (type) {                                         /* Check for proper type */
-        case GSM_SMS_ReadType_READ:     Pointers.CPtr1 = FROMMEM("READ");   break;
-        case GSM_SMS_ReadType_UNREAD:   Pointers.CPtr1 = FROMMEM("UNREAD"); break;
+        case GSM_SMS_ReadType_READ:     Pointers.CPtr1 = FROMMEM("REC READ");   break;
+        case GSM_SMS_ReadType_UNREAD:   Pointers.CPtr1 = FROMMEM("REC UNREAD"); break;
+        case GSM_SMS_ReadType_SENT:     Pointers.CPtr1 = FROMMEM("STO SENT"); break;
+        case GSM_SMS_ReadType_UNSENT:   Pointers.CPtr1 = FROMMEM("STO UNSENT"); break;
         case GSM_SMS_ReadType_ALL:
         default: 
             Pointers.CPtr1 = FROMMEM("ALL");
@@ -3591,8 +3627,8 @@ GSM_Result_t GSM_SMS_MassDelete(gvol GSM_t* GSM, GSM_SMS_MassDelete_t type, uint
 GSM_SmsInfo_t* GSM_SMS_GetReceivedInfo(gvol GSM_t* GSM, uint32_t blocking) {
     uint8_t i = 0;
     for (i = 0; i < GSM_MAX_RECEIVED_SMS_INFO; i++) {
-        if (GSM->SmsInfos[i].Flags.F.Received && !GSM->SmsInfos[i].Flags.F.Used) {  /* Check if any new SMS */
-            GSM->SmsInfos[i].Flags.F.Used = 1;              /* Set used flag */
+        if (GSM->SmsInfos[i].Flags.F.Received && !GSM->SmsInfos[i].Flags.F.UsedByUser) {    /* Check if any new SMS */
+            GSM->SmsInfos[i].Flags.F.UsedByUser = 1;        /* Set used by user */
             GSM->SmsInfos[i].Flags.F.Received = 0;          /* Reset flag */
             return (GSM_SmsInfo_t *)&GSM->SmsInfos[i];      /* Get pointer value */
         }
