@@ -4,7 +4,7 @@
  * \website https://majerle.eu/projects/gsm-at-commands-parser-for-embedded-systems
  * \license MIT
  * \version 0.4.0
- * \brief          GSM Library
+ * \brief   GSM Library
  *	
 \verbatim
    ----------------------------------------------------------------------
@@ -42,7 +42,7 @@ extern "C" {
 
 /**
  * \defgroup GSM
- * \brief           Platform independent, written in ANSII C, GSM AT parser library for SIMcom modules   
+ * \brief    Platform independent, written in ANSII C, GSM AT parser library for SIMcom modules   
  * \{
  */
 #include "stdlib.h"
@@ -130,8 +130,8 @@ typedef enum _GSM_Result_t {
  * \brief         Call direction enumeration
  */
 typedef enum _GSM_CallDir_t {
-    GSM_CallDir_MO = 0x00,                                  /*!< Call direction is Mobile Originated */
-    GSM_CallDir_MT = 0x01                                   /*<! Call direction is Mobile Terminated */
+    GSM_CallDir_MO = 0x00,                                  /*!< Call direction is Mobile Originated, outgoing call */
+    GSM_CallDir_MT = 0x01                                   /*<! Call direction is Mobile Terminated, incoming call*/
 } GSM_CallDir_t;
 
 /**

@@ -3703,7 +3703,7 @@ GSM_Result_t GSM_PB_List(gvol GSM_t* GSM, GSM_PB_Entry_t* entries, uint16_t star
     Pointers.Ptr2 = br;                                     /* Save pointer to number of entries read */
     Pointers.UI = start_index << 16 | ((start_index + btr - 1) & 0xFFFF); /* Save start index and entries count to read */
     
-    __RETURN_BLOCKING(GSM, blocking, 1000);                 /* Return with blocking support */
+    __RETURN_BLOCKING(GSM, blocking, 30000);                /* Return with blocking support */
 }
 
 GSM_Result_t GSM_PB_Search(gvol GSM_t* GSM, const char* search, GSM_PB_Entry_t* entries, uint16_t btr, uint16_t* br, uint32_t blocking) {
