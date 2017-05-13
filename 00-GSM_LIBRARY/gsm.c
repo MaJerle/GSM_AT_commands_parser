@@ -60,9 +60,9 @@ typedef struct {
 #define CHARHEXTONUM(x)                     (((x) >= '0' && (x) <= '9') ? ((x) - '0') : (((x) >= 'a' && (x) <= 'z') ? ((x) - 'a' + 10) : (((x) >= 'A' && (x) <= 'Z') ? ((x) - 'A' + 10) : 0)))
 #define FROMMEM(x)                          ((const char *)(x))
     
-#define UART_SEND_STR(str)                  GSM_LL_SendData((GSM_LL_t *)&GSM->LL, (const uint8_t *)(str), strlen((const char *)(str)))
-#define UART_SEND(str, len)                 GSM_LL_SendData((GSM_LL_t *)&GSM->LL, (const uint8_t *)(str), (len))
-#define UART_SEND_CH(ch)                    GSM_LL_SendData((GSM_LL_t *)&GSM->LL, (const uint8_t *)(ch), 1)
+#define UART_SEND_STR(str)                  do { Send.Data = (const uint8_t *)(str); Send.Count = strlen((const char *)(str)); GSM_LL_Callback(GSM_LL_Control_Send, &Send, &Send.Result); } while (0)
+#define UART_SEND(str, len)                 do { Send.Data = (const uint8_t *)(str); Send.Count = (len); GSM_LL_Callback(GSM_LL_Control_Send, &Send, &Send.Result); } while (0)
+#define UART_SEND_CH(ch)                    do { Send.Data = (const uint8_t *)(ch); Send.Count = 1; GSM_LL_Callback(GSM_LL_Control_Send, &Send, &Send.Result); } while (0)
 
 #define GSM_OK                              FROMMEM("OK\r\n")
 #define GSM_ERROR                           FROMMEM("ERROR\r\n")
@@ -214,7 +214,9 @@ typedef struct {
 
 #if GSM_RTOS == 1
 #define __IDLE(GSM)                         do {    \
-    if (GSM_SYS_Release((GSM_RTOS_SYNC_t *)&(GSM)->Sync)) { \
+    uint8_t result = 1;                         \
+    if (!GSM_LL_Callback(GSM_LL_Control_SYS_Release, (void *)&(GSM)->Sync, &result) || result) {    \
+                                                \
     }                                           \
     (GSM)->ActiveCmd = CMD_IDLE;                \
     __RESET_THREADS(GSM);                       \
@@ -236,7 +238,8 @@ typedef struct {
 
 #if GSM_RTOS
 #define __ACTIVE_CMD(GSM, cmd)              do {\
-    if (GSM_SYS_Request((GSM_RTOS_SYNC_t *)&(GSM)->Sync)) { \
+    uint8_t result = 1;                         \
+    if (!GSM_LL_Callback(GSM_LL_Control_SYS_Request, (void *)&(GSM)->Sync, &result) || result) {    \
         return gsmTIMEOUT;                      \
     }                                           \
     if ((GSM)->ActiveCmd == CMD_IDLE) {         \
@@ -253,8 +256,8 @@ typedef struct {
 } while (0)
 #endif
 
-#define __CMD_SAVE(GSM)                       (GSM)->ActiveCmdSaved = (GSM)->ActiveCmd
-#define __CMD_RESTORE(GSM)                    (GSM)->ActiveCmd = (GSM)->ActiveCmdSaved
+#define __CMD_SAVE(GSM)                         (GSM)->ActiveCmdSaved = (GSM)->ActiveCmd
+#define __CMD_RESTORE(GSM)                      (GSM)->ActiveCmd = (GSM)->ActiveCmdSaved
 
 #define __RETURN(GSM, val)                      do { (GSM)->RetVal = (val); return (val); } while (0)
 #define __RETURN_BLOCKING(GSM, b, mt) do {      \
@@ -339,6 +342,9 @@ gstatic struct pt pt_SMS;
 #if GSM_PHONEBOOK
 gstatic struct pt pt_PB;
 #endif /* GSM_PHONEBOOK */
+
+static
+GSM_LL_Send_t Send;                                         /* Send data setup */
 
 gstatic 
 void __RESET_THREADS(gvol GSM_t* GSM) {
@@ -2960,6 +2966,7 @@ GSM_Result_t ProcessThreads(gvol GSM_t* GSM) {
 GSM_Result_t GSM_Init(gvol GSM_t* G, const char* pin, uint32_t Baudrate, GSM_EventCallback_t callback) {
     uint32_t i = 50;
     BUFFER_t* Buff = &Buffer;
+    uint8_t result;
     
     GSM = G;                                                /* Save working pointer */
     
@@ -2981,19 +2988,23 @@ GSM_Result_t GSM_Init(gvol GSM_t* G, const char* pin, uint32_t Baudrate, GSM_Eve
     BUFFER_Init(Buff, GSM_BUFFER_SIZE, Buffer_Data);        /* Init buffer for receive */
     
     /* Low-Level initialization */
+    result = 1;
     GSM->LL.Baudrate = Baudrate;
-    if (GSM_LL_Init((GSM_LL_t *)&GSM->LL)) {                /* Init low-level */
+    if (!GSM_LL_Callback(GSM_LL_Control_Init, (void *)&GSM->LL, &result) || result) {   /* Init low-level */
         __RETURN(GSM, gsmLLERROR);                          /* Return error */
     }
     
     /* Set reset low */
-    GSM_LL_SetReset((GSM_LL_t *)&GSM->LL, GSM_RESET_SET);   /* Set reset */
+    result = GSM_RESET_SET;
+    GSM_LL_Callback(GSM_LL_Control_SetReset, &result, &result);
     GSM_Delay(GSM, 10);
-    GSM_LL_SetReset((GSM_LL_t *)&GSM->LL, GSM_RESET_CLR);   /* Clear reset */
+    result = GSM_RESET_CLR;
+    GSM_LL_Callback(GSM_LL_Control_SetReset, &result, &result); /* Clear reset */
     
 #if GSM_RTOS
     /* RTOS support */
-    if (GSM_SYS_Create((GSM_RTOS_SYNC_t *)&GSM->Sync)) {    /* Init sync object */
+    result = 1;
+    if (!GSM_LL_Callback(GSM_LL_Control_SYS_Create, (void *)&GSM->Sync, &result)) { /* Init sync object */
         __RETURN(GSM, gsmSYSERROR);
     }
 #endif

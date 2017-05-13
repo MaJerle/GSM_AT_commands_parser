@@ -388,7 +388,7 @@ uint16_t TM_USART_Gets(USART_TypeDef* USARTx, char* buffer, uint16_t bufsize) {
 	return TM_BUFFER_ReadString(TM_USART_INT_GetUSARTBuffer(USARTx), buffer, bufsize);
 }
 
-void TM_USART_Puts(USART_TypeDef* USARTx, char* str) {
+void TM_USART_Puts(USART_TypeDef* USARTx, const char* str) {
 	/* Go through entire string */
 	while (*str) {
 		/* Wait to be ready, buffer empty */
@@ -400,7 +400,7 @@ void TM_USART_Puts(USART_TypeDef* USARTx, char* str) {
 	}
 }
 
-void TM_USART_Send(USART_TypeDef* USARTx, uint8_t* DataArray, uint16_t count) {
+void TM_USART_Send(USART_TypeDef* USARTx, const uint8_t* DataArray, uint16_t count) {
 	/* Go through entire data array */
 	while (count--) {
 		/* Wait to be ready, buffer empty */

@@ -594,7 +594,7 @@ static __INLINE void TM_USART_Putc(USART_TypeDef* USARTx, volatile char c) {
  * @param  *str: Pointer to string to send over USART
  * @retval None
  */
-void TM_USART_Puts(USART_TypeDef* USARTx, char* str);
+void TM_USART_Puts(USART_TypeDef* USARTx, const char* str);
 
 /**
  * @brief  Sends data array to USART port
@@ -603,7 +603,7 @@ void TM_USART_Puts(USART_TypeDef* USARTx, char* str);
  * @param  count: Number of elements in data array to be send over USART
  * @retval None
  */
-void TM_USART_Send(USART_TypeDef* USARTx, uint8_t* DataArray, uint16_t count);
+void TM_USART_Send(USART_TypeDef* USARTx, const uint8_t* DataArray, uint16_t count);
 
 /**
  * @brief  Gets character from internal USART buffer

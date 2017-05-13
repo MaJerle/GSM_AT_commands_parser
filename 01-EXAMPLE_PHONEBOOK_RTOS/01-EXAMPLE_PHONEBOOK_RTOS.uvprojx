@@ -1166,11 +1166,6 @@
               <FileType>1</FileType>
               <FilePath>.\User\gsm_ll.c</FilePath>
             </File>
-            <File>
-              <FileName>gsm_sys.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\User\gsm_sys.c</FilePath>
-            </File>
           </Files>
         </Group>
         <Group>
@@ -2385,11 +2380,6 @@
               <FileType>1</FileType>
               <FilePath>.\User\gsm_ll.c</FilePath>
             </File>
-            <File>
-              <FileName>gsm_sys.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\User\gsm_sys.c</FilePath>
-            </File>
           </Files>
         </Group>
         <Group>
@@ -2448,7 +2438,7 @@
       <TargetName>NUCLEO_F411 HSE 8MHz</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
-      <pCCUsed>5060300::V5.06 update 3 (build 300)::ARMCC</pCCUsed>
+      <pCCUsed>5060528::V5.06 update 5 (build 528)::ARMCC</pCCUsed>
       <TargetOption>
         <TargetCommonOption>
           <Device>STM32F411RETx</Device>
@@ -3604,11 +3594,6 @@
               <FileType>1</FileType>
               <FilePath>.\User\gsm_ll.c</FilePath>
             </File>
-            <File>
-              <FileName>gsm_sys.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\User\gsm_sys.c</FilePath>
-            </File>
           </Files>
         </Group>
         <Group>
@@ -4557,11 +4542,6 @@
               <FileType>1</FileType>
               <FilePath>.\User\gsm_ll.c</FilePath>
             </File>
-            <File>
-              <FileName>gsm_sys.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\User\gsm_sys.c</FilePath>
-            </File>
           </Files>
         </Group>
         <Group>
@@ -4617,5 +4597,11 @@
       </Groups>
     </Target>
   </Targets>
+
+  <RTE>
+    <apis/>
+    <components/>
+    <files/>
+  </RTE>
 
 </Project>

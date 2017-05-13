@@ -1166,11 +1166,6 @@
               <FileType>1</FileType>
               <FilePath>.\User\gsm_ll.c</FilePath>
             </File>
-            <File>
-              <FileName>gsm_sys.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\User\gsm_sys.c</FilePath>
-            </File>
           </Files>
         </Group>
         <Group>
@@ -2384,11 +2379,6 @@
               <FileName>gsm_ll.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\User\gsm_ll.c</FilePath>
-            </File>
-            <File>
-              <FileName>gsm_sys.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\User\gsm_sys.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -3604,11 +3594,6 @@
               <FileType>1</FileType>
               <FilePath>.\User\gsm_ll.c</FilePath>
             </File>
-            <File>
-              <FileName>gsm_sys.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\User\gsm_sys.c</FilePath>
-            </File>
           </Files>
         </Group>
         <Group>
@@ -3672,7 +3657,7 @@
         <TargetCommonOption>
           <Device>STM32F746NGHx</Device>
           <Vendor>STMicroelectronics</Vendor>
-          <PackID>Keil.STM32F7xx_DFP.2.4.0</PackID>
+          <PackID>Keil.STM32F7xx_DFP.2.8.0</PackID>
           <PackURL>http://www.keil.com/pack</PackURL>
           <Cpu>IROM(0x08000000,0x100000) IROM2(0x00200000,0x100000) IRAM(0x20010000,0x40000) IRAM2(0x20000000,0x10000) CPUTYPE("Cortex-M7") FPU3(SFPU) CLOCK(12000000) ELITTLE</Cpu>
           <FlashUtilSpec></FlashUtilSpec>
@@ -4557,11 +4542,6 @@
               <FileType>1</FileType>
               <FilePath>.\User\gsm_ll.c</FilePath>
             </File>
-            <File>
-              <FileName>gsm_sys.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\User\gsm_sys.c</FilePath>
-            </File>
           </Files>
         </Group>
         <Group>
@@ -4617,5 +4597,11 @@
       </Groups>
     </Target>
   </Targets>
+
+  <RTE>
+    <apis/>
+    <components/>
+    <files/>
+  </RTE>
 
 </Project>

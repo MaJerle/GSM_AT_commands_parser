@@ -3,7 +3,7 @@
  * \email   tilen@majerle.eu
  * \website https://majerle.eu/projects/gsm-at-commands-parser-for-embedded-systems
  * \license MIT
- * \version 0.4.0
+ * \version 0.5.0
  * \brief   GSM Library
  *	
 \verbatim
@@ -33,7 +33,7 @@
 \endverbatim
  */
 #ifndef GSM_H
-#define GSM_H 040
+#define GSM_H 050
 
 /* C++ detection */
 #ifdef __cplusplus
@@ -59,11 +59,6 @@ extern "C" {
 
 /* GSM Low-Level drivers */
 #include "gsm_ll.h"
-
-#if GSM_RTOS
-/* RTOS support */
-#include "gsm_sys.h"
-#endif
 
 /* Backward compatibility */
 #if !defined(GSM_HTTP)

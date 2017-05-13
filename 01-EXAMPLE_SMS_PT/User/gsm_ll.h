@@ -32,17 +32,13 @@
 \endverbatim
  */
 #ifndef GSM_LL_H
-#define GSM_LL_H 100
+#define GSM_LL_H 010
 
 /* C++ detection */
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/* Include core libraries */
-#include "stdint.h"
-#include "stdlib.h"
-
+    
 /******************************************************************************/
 /******************************************************************************/
 /***      Copy this file to project directory and rename it to "gsm_ll.h"    **/
@@ -54,6 +50,15 @@ extern "C" {
  * \brief    GSM Low-Level implementation
  * \{
  */
+#include "stdint.h"
+#include "stdio.h"
+
+/* Get config */
+#include "gsm_config.h"
+
+#if GSM_RTOS
+#include "cmsis_os.h"
+#endif /* GSM_RTOS */
     
 /**
  * \defgroup LOWLEVEL_Typedefs
@@ -62,11 +67,91 @@ extern "C" {
  */
 
 /**
- * \brief  Low level structure for driver
- * \note   For now it has basic settings only without hardware flow control.
+ * \brief   Loe-level control enumeration with supported callbacks
+ * 
+ * This enumeration is used in \ref GSM_LL_Callback function with param and result parameters to function
+ */
+typedef enum _GSM_LL_Control_t {
+    /**
+     * \brief       Called to initialize low-level part of device, such as UART and GPIO configuration
+     *
+     * \param[in]   *param: Pointer to \ref GSM_LL_t structure with baudrate setup
+     * \param[out]  *result: Pointer to \ref uint8_t variable with result. Set to 0 when OK, or non-zero on ERROR.
+     */
+    GSM_LL_Control_Init = 0x00,     /*!< Initialization control */
+    
+    /**
+     * \brief       Called to send data to GSM device
+     *
+     * \param[in]   *param: Pointer to \ref GSM_LL_Send_t structure with data to send
+     * \param[out]  *result: Pointer to \ref uint8_t variable with result. Set to 0 when OK, or non-zero on ERROR.
+     */
+    GSM_LL_Control_Send,            /*!< Send data control */
+    
+    /**
+     * \brief       Called to set software RTS pin when necessary
+     *
+     * \param[in]   *param: Pointer to \ref uint8_t variable with RTS info. This parameter can be a value of \ref GSM_RTS_SET or \ref GSM_RTS_CLR macros
+     * \param[out]  *result: Pointer to \ref uint8_t variable with result. Set to 0 when OK, or non-zero on ERROR.
+     */
+    GSM_LL_Control_SetRTS,          /*!< Set software RTS control */
+    
+    /**
+     * \brief       Called to set reset pin when necessary
+     *
+     * \param[in]   *param: Pointer to \ref uint8_t variable with RESET info. This parameter can be a value of \ref GSM_RESET_SET or \ref GSM_RESET_CLR macros
+     * \param[out]  *result: Pointer to \ref uint8_t variable with result. Set to 0 when OK, or non-zero on ERROR.
+     */
+    GSM_LL_Control_SetReset,        /*!< Set reset control */
+    
+    /**
+     * \brief       Called to create system synchronization object on RTOS support
+     *
+     * \param[in]   *param: Pointer to \ref GSM_RTOS_SYNC_t variable with sync object
+     * \param[out]  *result: Pointer to \ref uint8_t variable with result. Set to 0 when OK, or non-zero on ERROR.
+     */
+    GSM_LL_Control_SYS_Create,      /*!< Creates a synchronization object */
+    
+    /**
+     * \brief       Called to delete system synchronization object on RTOS support
+     *
+     * \param[in]   *param: Pointer to \ref GSM_RTOS_SYNC_t variable with sync object
+     * \param[out]  *result: Pointer to \ref uint8_t variable with result. Set to 0 when OK, or non-zero on ERROR.
+     */
+    GSM_LL_Control_SYS_Delete,      /*!< Deletes a synchronization object */
+    
+    /**
+     * \brief       Called to grant access to sync object
+     *
+     * \param[in]   *param: Pointer to \ref GSM_RTOS_SYNC_t variable with sync object
+     * \param[out]  *result: Pointer to \ref uint8_t variable with result. Set to 0 when OK, or non-zero on ERROR.
+     */
+    GSM_LL_Control_SYS_Request,     /*!< Requests grant for specific sync object */
+    
+    /**
+     * \brief       Called to release access from sync object
+     *
+     * \param[in]   *param: Pointer to \ref GSM_RTOS_SYNC_t variable with sync object
+     * \param[out]  *result: Pointer to \ref uint8_t variable with result. Set to 0 when OK, or non-zero on ERROR.
+     */
+    GSM_LL_Control_SYS_Release,     /*!< Releases grant for specific sync object */
+} GSM_LL_Control_t;
+
+/**
+ * \brief   Structure for sending data to low-level part
+ */
+typedef struct _GSM_LL_Send_t {
+    const uint8_t* Data;            /*!< Pointer to data to send */
+    uint16_t Count;                 /*!< Number of bytes to send */
+    uint8_t Result;                 /*!< Result of last send */
+} GSM_LL_Send_t;
+
+/**
+ * \brief   Low level structure for driver
+ * \note    For now it has basic settings only without hardware flow control.
  */
 typedef struct _GSM_LL_t {
-    uint32_t Baudrate;			/*!< Baudrate to be used for UART */
+    uint32_t Baudrate;              /*!< Baudrate to be used for UART */
 } GSM_LL_t;
     
 /**
@@ -82,59 +167,30 @@ typedef struct _GSM_LL_t {
  * \{
  */
 
-#define GSM_RTS_SET         1   /*!< RTS should be set high */
-#define GSM_RTS_CLR         0   /*!< RTS should be set low */
-#define GSM_RESET_SET		1	/*!< Reset pin should be set */
-#define GSM_RESET_CLR		0	/*!< Reset pin should be cleared */
+#define GSM_RTS_SET         1       /*!< RTS should be set high */
+#define GSM_RTS_CLR         0       /*!< RTS should be set low */
+#define GSM_RESET_SET       1       /*!< Reset pin should be set */
+#define GSM_RESET_CLR       0       /*!< Reset pin should be cleared */
     
 /**
  * \}
  */
 
 /**
- * \defgroup LOWLEVEL_Functions
- * \brief    GSM Low-Level implementation
+ * \defgroup    LOWLEVEL_Functions
+ * \brief       GSM Low-Level implementation
  * \{
  */
 
 /**
- * \brief  Initializes Low-Level driver to communicate with SIM module
- * \param  *LL: Pointer to \ref GSM_LL_t structure with settings
- * \retval Success status:
- *            - 0: Successful
- *            - > 0: Error
+ * \brief       Low-level callback for interaction with device specific section
+ * \param[in]   ctrl: Control to be done
+ * \param[in]   *param: Pointer to parameter setup, depends on control type
+ * \param[out]  *result: Optional result parameter in case of commands
+ * \retval      1: Control command has been processed
+ * \retval      0: Control command has not been processed
  */
-uint8_t GSM_LL_Init(GSM_LL_t* LL);
-
-/**
- * \brief  Sends data to SIM module from GSM stack
- * \param  *LL: Pointer to \ref GSM_LL_t structure with settings
- * \param  *data: Data to be sent to module
- * \param  count: Number of bytes to be sent to module
- * \retval Success status:
- *            - 0: Successful
- *            - > 0: Error
- */
-uint8_t GSM_LL_SendData(GSM_LL_t* LL, const uint8_t* data, uint16_t count);
-
-/**
- * \brief  Set reset pin high or low
- * \param  *LL: Pointer to \ref GSM_LL_t structure with settings
- * \param  state: State for reset pin, it can be high or low. Check \ref GSM_RESET_HIGH and \ref GSM_RESET_LOW
- * \retval Success status:
- *            - 0: Successful
- *            - > 0: Error
- */
-uint8_t GSM_LL_SetReset(GSM_LL_t* LL, uint8_t state);
-
-/**
- * \brief  Initializes Low-Level driver to communicate with SIM module
- * \param  *LL: Pointer to \ref GSM_LL_t structure with settings
- * \retval Success status:
- *            - 0: Successful
- *            - > 0: Error
- */
-uint8_t GSM_LL_SetRTS(GSM_LL_t* LL, uint8_t state);
+uint8_t GSM_LL_Callback(GSM_LL_Control_t ctrl, void* param, void* result);
     
 /**
  * \}
