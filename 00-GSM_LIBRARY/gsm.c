@@ -1242,7 +1242,7 @@ PT_THREAD(PT_Thread_GEN(struct pt* pt, gvol GSM_t* GSM)) {
         __RST_EVENTS_RESP(GSM);                             /* Reset events */
         UART_SEND_STR(FROMMEM("AT"));                       /* Send test */
         UART_SEND_STR(GSM_CRLF);
-        StartCommand(GSM, CMD_GEN_FACTORY_SETTINGS, NULL);  /* Start command */
+        StartCommand(GSM, CMD_GEN_AT, NULL);  /* Start command */
         
         PT_WAIT_UNTIL(pt, GSM->Events.F.RespOk || 
                             GSM->Events.F.RespError);       /* Wait for response */
